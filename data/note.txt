@@ -1,3 +1,7 @@
+1) Dokcer Create -> backend database server
+                 -> to presistence volume create
+                 -> Change date to current by adding 7 years
+
 docker volume create postgres-data  
 
 docker run --name querymate-db \

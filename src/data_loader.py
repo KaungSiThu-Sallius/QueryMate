@@ -27,9 +27,7 @@ def to_datetime_conversion(engine):
         "ALTER TABLE orders ALTER COLUMN order_delivered_carrier_date TYPE TIMESTAMP USING order_delivered_carrier_date::timestamp;",
         "ALTER TABLE orders ALTER COLUMN order_delivered_customer_date TYPE TIMESTAMP USING order_delivered_customer_date::timestamp;",
         "ALTER TABLE orders ALTER COLUMN order_estimated_delivery_date TYPE TIMESTAMP USING order_estimated_delivery_date::timestamp;",
-
         "ALTER TABLE order_items ALTER COLUMN shipping_limit_date TYPE TIMESTAMP USING shipping_limit_date::timestamp;",
-
         "ALTER TABLE order_reviews ALTER COLUMN review_creation_date TYPE TIMESTAMP USING review_creation_date::timestamp;",
         "ALTER TABLE order_reviews ALTER COLUMN review_answer_timestamp TYPE TIMESTAMP USING review_answer_timestamp::timestamp;",
     ]
@@ -52,7 +50,7 @@ if __name__  == "__main__":
 
     engine = create_engine(
         f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
-)
+    )
     root_path = os.getcwd()
     data_path = os.path.join(root_path, 'data/raw_data_used')
     

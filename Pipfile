@@ -5,11 +5,15 @@ name = "pypi"
 
 [packages]
 psycopg2-binary = "*"
-python-dotenv = "*"
 sqlalchemy = "*"
 pandas = "*"
+google-generativeai = "*"
+langchain-google-genai = "*"
+langchain-core = "*"
+langchain = "*"
 
 [dev-packages]
+ipykernel = "*"
 
 [requires]
 python_version = "3.11"
