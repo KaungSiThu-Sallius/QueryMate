@@ -1,2 +1,94 @@
-2026-03-16 20:14:23,How many customers?,SELECT COUNT(*) as customer_count FROM customers;,1896.27,success,
-2026-03-16 20:40:48,How many customers?,SELECT COUNT(*) as customer_count FROM customers;,2085.8,success,
+user_question,timestamp,generated_sql,execution_time_ms,status,error
+
+How many customers are there?,2026-03-18 22:18:06,SELECT COUNT(*) as customer_count FROM customers;,1933.27,success,None
+Show me 10 customers from São Paulo,2026-03-18 22:18:24,"SELECT customer_id, customer_city, customer_state
+FROM customers
+WHERE customer_city = 'são paulo'
+LIMIT 10;",13300.01,success,None
+Show me 10 customers from Sao Paulo,2026-03-18 22:19:38,"SELECT customer_id, customer_city, customer_state
+FROM customers
+WHERE LOWER(customer_city) = 'sao paulo'
+LIMIT 10;",4692.55,success,None
+How many orders were placed in January 2025?,2026-03-18 22:20:00,"SELECT COUNT(order_id)
+FROM orders
+WHERE EXTRACT(MONTH FROM order_purchase_timestamp) = 1
+  AND EXTRACT(YEAR FROM order_purchase_timestamp) = 2025;",2163.5,success,None
+What was the total revenue in 2025?,2026-03-18 22:20:18,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric,2) as total_revenue FROM order_items oi JOIN orders o ON oi.order_id = o.order_id WHERE EXTRACT(YEAR FROM o.order_purchase_timestamp) = 2025;",2255.95,success,None
+Show me average order value by state,2026-03-18 22:22:09,"SELECT c.customer_state, AVG(op.payment_value) AS average_order_value
+FROM orders o
+JOIN order_payments op ON o.order_id = op.order_id
+JOIN customers c ON o.customer_id = c.customer_id
+GROUP BY c.customer_state
+LIMIT 100;",2191.41,success,None
+Show me sales,2026-03-18 22:22:37,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_sales
+FROM order_items oi;",2736.25,success,None
+Show me orders from 2012,2026-03-18 22:24:33,,0,failed,Empty SQL
+Show me orders from 2012,2026-03-18 22:25:59,,0,failed,Empty SQL
+Show me orders from 2012,2026-03-18 22:39:36,,0,failed,Empty SQL
+Show me orders from 2012,2026-03-18 22:41:07,,0,failed,Empty SQL
+Show me orders from 2012,2026-03-18 22:45:28,,0,failed,Empty SQL
+Show me orders from 2012,2026-03-18 22:50:37,,0,failed,Empty SQL
+Show me orders from 2012,2026-03-18 22:53:36,,0,failed,Empty SQL
+Show me orders from 2012,2026-03-18 23:21:19,,0,failed,Empty SQL
+Show me orders from 2012,2026-03-19 01:18:12,"SELECT order_id, order_purchase_timestamp, customer_id
+FROM orders
+WHERE EXTRACT(YEAR FROM order_purchase_timestamp) = 2012
+LIMIT 100;",3265.43,success,None
+Show me orders from 2012,2026-03-19 09:33:07,"SELECT order_id, customer_id, order_purchase_timestamp
+FROM orders
+WHERE EXTRACT(YEAR FROM order_purchase_timestamp) = 2012
+LIMIT 100;",2503.93,success,None
+How many users are there?,2026-03-19 09:33:23,,0,failed,Empty SQL
+How many users are there?,2026-03-19 09:34:07,SELECT COUNT(DISTINCT customer_id) as user_count FROM customers;,1256.85,success,None
+Which customers left 5-star reviews and spent more than 500 total,2026-03-19 09:34:27,"SELECT c.customer_id, c.customer_city, c.customer_state, SUM(op.payment_value) AS total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_payments op ON o.order_id = op.order_id
+JOIN order_reviews r ON o.order_id = r.order_id
+WHERE r.review_score = 5
+GROUP BY c.customer_id, c.customer_city, c.customer_state
+HAVING SUM(op.payment_value) > 500
+LIMIT 100;
+```",1315.95,failed,"Error: Execution failed on sql 'SELECT c.customer_id, c.customer_city, c.customer_state, SUM(op.payment_value) AS total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_payments op ON o.order_id = op.order_id
+JOIN order_reviews r ON o.order_id = r.order_id
+WHERE r.review_score = 5
+GROUP BY c.customer_id, c.customer_city, c.customer_state
+HAVING SUM(op.payment_value) > 500
+LIMIT 100;
+```': (psycopg2.errors.SyntaxError) syntax error at or near ""```""
+LINE 10: ```
+         ^
+
+[SQL: SELECT c.customer_id, c.customer_city, c.customer_state, SUM(op.payment_value) AS total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_payments op ON o.order_id = op.order_id
+JOIN order_reviews r ON o.order_id = r.order_id
+WHERE r.review_score = 5
+GROUP BY c.customer_id, c.customer_city, c.customer_state
+HAVING SUM(op.payment_value) > 500
+LIMIT 100;
+```]
+(Background on this error at: https://sqlalche.me/e/20/f405)"
+Which customers left 5-star reviews and spent more than 500 total,2026-03-19 09:39:39,"SELECT
+  c.customer_id,
+  c.customer_city,
+  SUM(oi.price + oi.freight_value) AS total_spent
+FROM customers AS c
+JOIN orders AS o
+  ON c.customer_id = o.customer_id
+JOIN order_items AS oi
+  ON o.order_id = oi.order_id
+JOIN order_reviews AS r
+  ON o.order_id = r.order_id
+WHERE
+  r.review_score = 5
+GROUP BY
+  c.customer_id,
+  c.customer_city
+HAVING
+  SUM(oi.price + oi.freight_value) > 500
+LIMIT 100;",2072.74,success,None

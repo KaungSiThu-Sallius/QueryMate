@@ -1,5 +1,5 @@
 from prompts import get_prompt
-from utilities import llm_output_clean
+from utilities import llm_output_clean, validate_sql
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 import os
@@ -14,33 +14,45 @@ gemini_key=os.getenv('GEMINI_API_KEY')
 
 root_path = os.getcwd()
 
+logging_dict = {
+    'user_question': None,
+    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+    'generated_sql': None,
+    'execution_time_ms': 0,
+    'status': None,
+    'error': None
+}
+
+def logging(log_dict):
+    log_path = os.path.join(root_path, 'data/logs')
+    log_file = os.path.join(log_path, 'sql_generation_logs.csv')
+    
+    os.makedirs(log_path, exist_ok=True)
+
+    logging_df = pd.DataFrame([log_dict])
+    if os.path.exists(log_file):
+        logging_df.to_csv(log_file, mode='a', header=False, index=False)
+    else:
+        logging_df.to_csv(log_file, mode='w', header=True, index=False)
+
 def generate_sql(user_question):
     """
         Function that takes a user question and returns SQL using llm gemini-2.5-flash
         Parameters: user_question (string)
         Returns: sql_query (string)
     """
-    # client = genai.Client()
-
-    logging_dict = {
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'user_question': user_question,
-        'generated_sql': None,
-        'execution_time_ms': 0,
-        'status': None,
-        'error': None
-    }
     
     prompt = get_prompt()
+    logging_dict['user_question'] = user_question
 
     try:
         print("Fetching from LLM...")
         start_time = time.time()
 
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-flash-lite",
             temperature=1.0,  
-            # max_tokens=1000,
+            max_tokens=500,
             timeout=None,
             max_retries=2,
             convert_system_message_to_human=True
@@ -57,23 +69,10 @@ def generate_sql(user_question):
 
         logging_dict['generated_sql'] = sql
         logging_dict['execution_time_ms'] = round((end_time - start_time) * 1000, 2)
-        logging_dict['status'] = 'success'
+
     except Exception as e:
         print(f"Error generating SQL: {e}")
-        sql = None
-        logging_dict['status'] = 'failed'
-        logging_dict['error'] = str(e)
-
-    logging_df = pd.DataFrame([logging_dict])
-    log_path = os.path.join(os.getcwd(), 'data/logs')
-    log_file = os.path.join(log_path, 'sql_generation_logs.csv')
-    
-    os.makedirs(log_path, exist_ok=True)
-
-    if os.path.exists(log_file):
-        logging_df.to_csv(log_file, mode='a', header=False, index=False)
-    else:
-        logging_df.to_csv(log_file, mode='w', header=True, index=False)
+        return None
     
     return sql
 
@@ -89,11 +88,18 @@ def ask_database(user_question):
     if sql == None:
         print("❌ Could not generate SQL. Your question might be ambiguous.")
         print("Please provide more details about which tables or columns you're interested in.")
+        logging_dict['status'] = 'failed'
+        logging_dict['error'] = "Empty SQL"
+        logging(logging_dict)
+        return None
     else:
-        dangerous_keywords = ['DROP', 'DELETE', 'UPDATE', 'ALTER', 'TRUNCATE', 'INSERT']
-        if any(keyword in sql.upper() for keyword in dangerous_keywords):
-            print("🚫 Error: Destructive queries are not allowed.")
-            print("Only SELECT queries are permitted.")
+        is_valid, error_msg = validate_sql(sql)
+        if not is_valid:
+            print(f"🚫 Validation Error: {error_msg}")
+            logging_dict['status'] = 'failed'
+            logging_dict['error'] = "Invalid SQL"
+            logging(logging_dict)
+            return None
         else: 
             dbname=os.getenv('DB_NAME')
             user=os.getenv('DB_USER')
@@ -117,6 +123,9 @@ def ask_database(user_question):
                         print(f"\nReturned {len(df)} row(s)")
                     else:
                         print("Query executed successfully but returned no results.")
+                    logging_dict['status'] = 'success'
+                    logging_dict['error'] = "None"
+                    logging(logging_dict)
             except Exception as e:
                 if "canceling statement due to statement timeout" in str(e):
                     print("⏱️ Query timeout: Query took longer than 5 seconds.")
@@ -124,9 +133,13 @@ def ask_database(user_question):
                 else:
                     print(f"SQL Execution Error: {e}")
                     print(f"\nGenerated SQL was:\n{sql}")
-
-
-user_questions = 'How many customers?'
+                logging_dict['status'] = 'failed'
+                logging_dict['error'] = f"Error: {e}"
+                logging(logging_dict)
+            
+user_questions = 'Which customers left 5-star reviews and spent more than 500 total'
 ask_database(user_questions)
 
     
+# How many users are there?
+# Which customers left 5-star reviews and spent more than 500 total

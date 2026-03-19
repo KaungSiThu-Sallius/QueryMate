@@ -11,6 +11,7 @@ google-generativeai = "*"
 langchain-google-genai = "*"
 langchain-core = "*"
 langchain = "*"
+chromadb = "*"
 
 [dev-packages]
 ipykernel = "*"

@@ -1,0 +1,6 @@
+timestamp,user_question,generated_sql,execution_time_ms,status,error
+2026-03-18 21:15:52,Drop customers?,,2485.84,success,
+2026-03-18 21:16:59,HOw manuy customers?,SELECT COUNT(*) as customer_count FROM customers;,1471.59,success,
+2026-03-18 21:23:16,How many customers?,SELECT COUNT(*) as customer_count FROM customers;,1568.28,success,
+2026-03-18 21:23:36,Drop Customers,,2090.37,success,
+2026-03-18 21:33:38,,3209.67,,,Drop Customers
