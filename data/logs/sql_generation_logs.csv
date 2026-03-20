@@ -92,3 +92,101 @@ GROUP BY
 HAVING
   SUM(oi.price + oi.freight_value) > 500
 LIMIT 100;",2072.74,success,None
+Which customers left 5-star reviews and spent more than 500 total,2026-03-19 13:34:56,"SELECT
+    c.customer_id,
+    c.customer_city,
+    c.customer_state,
+    SUM(oi.price + oi.freight_value) AS total_spent
+FROM
+    customers c
+JOIN
+    orders o ON c.customer_id = o.customer_id
+JOIN
+    order_items oi ON o.order_id = oi.order_id
+JOIN
+    order_reviews r ON o.order_id = r.order_id
+WHERE
+    r.review_score = 5
+GROUP BY
+    c.customer_id, c.customer_city, c.customer_state
+HAVING
+    SUM(oi.price + oi.freight_value) > 500
+LIMIT 100;",1656.34,success,None
+How many customers are there?,2026-03-19 17:42:10,SELECT COUNT(*) as customer_count FROM customers;,3963.62,success,None
+Show me 10 customers from Sao Paulo,2026-03-19 17:42:34,"SELECT c.customer_id, c.customer_city, c.customer_state
+FROM customers c
+WHERE LOWER(c.customer_city) = 'sao paulo'
+LIMIT 10;",1141.1,success,None
+What are the top 5 product categories?,2026-03-19 17:42:52,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1435.16,success,None
+How many orders in January 2025?,2026-03-19 17:43:13,"SELECT COUNT(order_id) as orders_jan_2025
+FROM orders
+WHERE order_purchase_timestamp >= '2025-01-01 00:00:00'
+  AND order_purchase_timestamp < '2025-02-01 00:00:00';",1478.52,success,None
+What was total revenue in 2025?,2026-03-19 17:43:29,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric,2) as total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE EXTRACT(YEAR FROM o.order_purchase_timestamp) = 2025",794.26,success,None
+Show average order value by state,2026-03-19 17:43:41,"SELECT
+    c.customer_state,
+    ROUND(AVG(oi.price + oi.freight_value)::numeric, 2) AS average_order_value
+FROM
+    customers c
+JOIN
+    orders o ON c.customer_id = o.customer_id
+JOIN
+    order_items oi ON o.order_id = oi.order_id
+GROUP BY
+    c.customer_state
+ORDER BY
+    c.customer_state
+LIMIT 100;",1257.86,success,None
+How many customers are there?,2026-03-19 19:09:44,SELECT COUNT(*) as customer_count FROM customers;,1138.0,success,None
+Show me 10 customers from Sao Paulo,2026-03-19 19:11:54,"SELECT c.customer_id, c.customer_city, c.customer_state
+FROM customers c
+WHERE LOWER(c.customer_city) = 'sao paulo'
+LIMIT 10;",1336.05,success,None
+Show me 10 customers from Sao Paulo,2026-03-19 19:14:22,"SELECT c.customer_id, c.customer_city, c.customer_state
+FROM customers c
+WHERE c.customer_city = 'sao paulo'
+LIMIT 10;",1395.27,success,None
+How many customers are there?,2026-03-19 19:14:56,SELECT COUNT(*) as customer_count FROM customers;,1098.02,success,None
+How many customers are there?,2026-03-19 19:16:28,SELECT COUNT(*) as customer_count FROM customers;,1129.52,success,None
+Show me 10 customers from Sao Paulo,2026-03-19 19:16:39,"SELECT c.customer_id, c.customer_city, c.customer_state
+FROM customers c
+WHERE c.customer_city = LOWER('Sao Paulo')
+LIMIT 10;",1122.44,success,None
+What are the top 5 product categories?,2026-03-19 19:17:19,"SELECT pct.product_category_name_english, COUNT(oi.order_id) AS order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",4449.93,success,None
+How many orders in January 2025?,2026-03-19 19:17:38,"SELECT COUNT(order_id) AS january_2025_orders
+FROM orders
+WHERE EXTRACT(YEAR FROM order_purchase_timestamp) = 2025
+  AND EXTRACT(MONTH FROM order_purchase_timestamp) = 1;",1135.13,success,None
+What was total revenue in 2025?,2026-03-19 19:17:46,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric,2) as total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE EXTRACT(YEAR FROM o.order_purchase_timestamp) = 2025",1229.86,success,None
+Show average order value by state,2026-03-19 19:17:55,"SELECT
+    c.customer_state,
+    AVG(oi.price + oi.freight_value) AS average_order_value
+FROM
+    order_items oi
+JOIN
+    orders o ON oi.order_id = o.order_id
+JOIN
+    customers c ON o.customer_id = c.customer_id
+WHERE
+    EXTRACT(YEAR FROM o.order_purchase_timestamp) BETWEEN 2024 AND 2026
+GROUP BY
+    c.customer_state
+LIMIT 100;",1191.59,success,None

@@ -1,5 +1,4 @@
 from prompts import get_prompt
-from utilities import llm_output_clean, validate_sql
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 import os
@@ -8,6 +7,8 @@ import time
 from datetime import datetime
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
+from utilities import llm_output_clean, validate_sql
+from vector_store import store_successful_query
 
 load_dotenv()
 gemini_key=os.getenv('GEMINI_API_KEY')
@@ -115,17 +116,22 @@ def ask_database(user_question):
             )
             try: 
                 with engine.connect() as conn:
+                    start_time = time.time()
                     conn.execute(text("SET statement_timeout = '5s'"))
                     df = pd.read_sql(text(sql), conn)
+                    execution_time = time.time() - start_time
+                    rows_returned = len(df)
                     if not df.empty:
                         print("\nQuery Results:")
                         print(df.to_string(index=False))
-                        print(f"\nReturned {len(df)} row(s)")
+                        print(f"\nReturned {rows_returned} row(s)")
                     else:
                         print("Query executed successfully but returned no results.")
                     logging_dict['status'] = 'success'
                     logging_dict['error'] = "None"
                     logging(logging_dict)
+                    store_successful_query(user_question, sql, rows_returned, execution_time)
+                    return True
             except Exception as e:
                 if "canceling statement due to statement timeout" in str(e):
                     print("⏱️ Query timeout: Query took longer than 5 seconds.")
@@ -137,7 +143,7 @@ def ask_database(user_question):
                 logging_dict['error'] = f"Error: {e}"
                 logging(logging_dict)
             
-user_questions = 'Which customers left 5-star reviews and spent more than 500 total'
+user_questions = 'Show average order value by state'
 ask_database(user_questions)
 
     
