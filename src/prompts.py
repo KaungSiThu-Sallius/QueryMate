@@ -111,6 +111,9 @@ prompt_template = PromptTemplate.from_template(
         WHERE r.review_score = 5
         LIMIT 100;
 
+        Additional relevant examples from past queries
+        {retrieved_examples}
+
         Now convert this question into a SQL query:
 
         Remark: Timestamp data are between 2024 and 2026. When user prompt full city name remember to change to lowercase.

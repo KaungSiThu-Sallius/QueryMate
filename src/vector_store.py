@@ -38,7 +38,7 @@ def retrieve_similar_queries(user_question: str):
     results_list = []
 
     for i in range(len(questions)):
-        if similarities[i] < 0.8:
+        if similarities[i] < 2.0:
             results_list.append(
                 {
                     'question': questions[i],
@@ -48,7 +48,3 @@ def retrieve_similar_queries(user_question: str):
             )
 
     return results_list
-
-for i in retrieve_similar_queries('How many customers are there?'):
-    print("\nResult: ")
-    print(i)

@@ -8,7 +8,7 @@ from datetime import datetime
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from utilities import llm_output_clean, validate_sql
-from vector_store import store_successful_query
+from vector_store import store_successful_query, retrieve_similar_queries
 
 load_dotenv()
 gemini_key=os.getenv('GEMINI_API_KEY')
@@ -20,6 +20,9 @@ logging_dict = {
     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
     'generated_sql': None,
     'execution_time_ms': 0,
+    'retrieved_count': 0,
+    'retrieval_time_ms': 0,
+    'rag_used': False,
     'status': None,
     'error': None
 }
@@ -40,19 +43,36 @@ def generate_sql(user_question):
     """
         Function that takes a user question and returns SQL using llm gemini-2.5-flash
         Parameters: user_question (string)
-        Returns: sql_query (string)
+        Returns: tuple (sql_query string, retrieved_examples list)
     """
     
     prompt = get_prompt()
     logging_dict['user_question'] = user_question
 
+    # Retrieve similar queries ONCE
+    retrieved_examples = []
     try:
-        print("Fetching from LLM...")
+        start_time = time.time()
+        retrieved_examples = retrieve_similar_queries(user_question)
+        logging_dict['retrieval_time_ms'] = round((time.time() - start_time) * 1000, 2)
+    except Exception as e:
+        print(f"⚠️ Warning: Retrieval failed ({e}), using static examples only")
+        retrieved_examples = []
+
+    retrieved_examples_count = len(retrieved_examples)
+
+    if retrieved_examples_count > 0:
+        logging_dict['rag_used'] = True
+
+    logging_dict['retrieved_count'] = retrieved_examples_count
+
+    try:
+        print("🤖 Fetching from LLM...")
         start_time = time.time()
 
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash-lite",
-            temperature=1.0,  
+            model="gemini-2.5-flash",
+            temperature=0,  
             max_tokens=500,
             timeout=None,
             max_retries=2,
@@ -63,7 +83,7 @@ def generate_sql(user_question):
 
         chain = prompt | llm | output_parser
 
-        sql = chain.invoke({"question": user_question})
+        sql = chain.invoke({"question": user_question, "retrieved_examples": retrieved_examples})
         sql = llm_output_clean(sql)
 
         end_time = time.time()
@@ -71,11 +91,14 @@ def generate_sql(user_question):
         logging_dict['generated_sql'] = sql
         logging_dict['execution_time_ms'] = round((end_time - start_time) * 1000, 2)
 
+        return sql, retrieved_examples 
+
     except Exception as e:
-        print(f"Error generating SQL: {e}")
-        return None
-    
-    return sql
+        print(f"❌ Error generating SQL: {e}")
+        logging_dict['status'] = 'failed'
+        logging_dict['error'] = str(e)
+        logging(logging_dict)
+        return None, retrieved_examples
 
 def ask_database(user_question):
     """
@@ -84,7 +107,22 @@ def ask_database(user_question):
         Returns: results (list of dictionaries or pandas DataFrame)
     """
 
-    sql = generate_sql(user_question)
+    try:
+        sql, retrieved_examples = generate_sql(user_question)
+    except Exception as e:
+        error_str = str(e)
+        if "429" in error_str or "quota" in error_str.lower() or "rate limit" in error_str.lower():
+            print("🚫 API Rate Limit Exceeded!")
+            print("⏰ Your Gemini API quota is exhausted. Please wait and try again later.")
+            print(f"💡 Tip: Check your quota at https://aistudio.google.com")
+            logging_dict['status'] = 'failed'
+            logging_dict['error'] = "Rate limit exceeded"
+            logging(logging_dict)
+            return None
+        else:
+            raise e
+
+    sql, retrieved_examples = generate_sql(user_question)
 
     if sql == None:
         print("❌ Could not generate SQL. Your question might be ambiguous.")
@@ -98,7 +136,7 @@ def ask_database(user_question):
         if not is_valid:
             print(f"🚫 Validation Error: {error_msg}")
             logging_dict['status'] = 'failed'
-            logging_dict['error'] = "Invalid SQL"
+            logging_dict['error'] = error_msg
             logging(logging_dict)
             return None
         else: 
@@ -119,33 +157,64 @@ def ask_database(user_question):
                     start_time = time.time()
                     conn.execute(text("SET statement_timeout = '5s'"))
                     df = pd.read_sql(text(sql), conn)
-                    execution_time = time.time() - start_time
+                    execution_time = round((time.time() - start_time) * 1000, 2)
                     rows_returned = len(df)
+                    
                     if not df.empty:
-                        print("\nQuery Results:")
+                        print("\n✅ Query Results:")
                         print(df.to_string(index=False))
-                        print(f"\nReturned {rows_returned} row(s)")
+                        print(f"\n📊 Returned {rows_returned} row(s)")
                     else:
-                        print("Query executed successfully but returned no results.")
+                        print("⚠️ Query executed successfully but returned no results.")
+                    
                     logging_dict['status'] = 'success'
-                    logging_dict['error'] = "None"
+                    logging_dict['error'] = None
                     logging(logging_dict)
-                    store_successful_query(user_question, sql, rows_returned, execution_time)
-                    return True
+
+                    should_store = True
+                    
+                    if retrieved_examples and len(retrieved_examples) > 0:
+                        # Check first result's similarity
+                        first_result = retrieved_examples[0]
+                        similarity_score = first_result.get('similarity_score', 1.0)
+                        
+                        if similarity_score < 0.2:
+                            print(f"⏭️ Skipping storage - very similar to existing query (score: {similarity_score:.3f})")
+                            should_store = False
+                    
+                    if should_store:
+                        store_successful_query(user_question, sql, rows_returned, execution_time)
+                        print("💾 Query stored in ChromaDB")
+
+                    return df
+                    
             except Exception as e:
                 if "canceling statement due to statement timeout" in str(e):
                     print("⏱️ Query timeout: Query took longer than 5 seconds.")
-                    print("Try narrowing your search with date filters or LIMIT.")
+                    print("💡 Try narrowing your search with date filters or LIMIT.")
                 else:
-                    print(f"SQL Execution Error: {e}")
-                    print(f"\nGenerated SQL was:\n{sql}")
+                    print(f"❌ SQL Execution Error: {e}")
+                    print(f"\n📝 Generated SQL was:\n{sql}")
+                
                 logging_dict['status'] = 'failed'
-                logging_dict['error'] = f"Error: {e}"
+                logging_dict['error'] = str(e)
                 logging(logging_dict)
-            
-user_questions = 'Show average order value by state'
-ask_database(user_questions)
+                return None
+
+# Test examples
+if __name__ == "__main__":
+    user_questions = 'Show me 10 customers from Sao Paulo'
+    ask_database(user_questions)
 
     
-# How many users are there?
-# Which customers left 5-star reviews and spent more than 500 total
+# Test questions:
+# "How many customers are there?"
+# "Show me 10 customers from Sao Paulo"
+# "What are the top 5 product categories?"
+# "How many orders in January 2017?"
+# "What was total revenue in 2017?"
+# "Show average order value by state"
+# "Show me sales" (intentionally ambiguous)
+# "Show orders from 2025" (no data exists)
+# "How many users are there?" (wrong table name - should be customers)
+# "Which customers left 5-star reviews and spent over 500?"

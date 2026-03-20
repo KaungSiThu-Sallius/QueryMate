@@ -1,0 +1,2 @@
+,total_queries,with_rag_retrieved,without_rag_retrieved,success_no_rag,avg_examples_retrieved,success_low_rag,success_high_rag,rag_improvement
+0,94,"(86, 91.49)","(8, 8.51)",12.5,1.85,100.0,100.0,87.5
