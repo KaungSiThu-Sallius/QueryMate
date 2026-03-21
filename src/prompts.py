@@ -5,6 +5,7 @@ prompt_template = PromptTemplate.from_template(
         You are an expert PostgreSQL database assistant for an e-commerce analytics system.
 
         Your task is to convert natural language questions into valid PostgreSQL queries that can be executed directly.
+        Always start with SELECT statement.
 
         DATABASE SCHEMA:
 
@@ -78,6 +79,8 @@ prompt_template = PromptTemplate.from_template(
         7. For "revenue" or "sales", calculate: SUM(price + freight_value) from order_items
         8. Use table aliases for readability (e.g., 'c' for customers, 'o' for orders)
 
+        {conversation_context}
+
         EXAMPLES:
 
         Question: How many customers are there?
@@ -113,6 +116,7 @@ prompt_template = PromptTemplate.from_template(
 
         Additional relevant examples from past queries
         {retrieved_examples}
+
 
         Now convert this question into a SQL query:
 

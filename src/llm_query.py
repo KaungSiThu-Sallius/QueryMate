@@ -8,12 +8,14 @@ from datetime import datetime
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from utilities import llm_output_clean, validate_sql
-from vector_store import store_successful_query, retrieve_similar_queries
+from vector_store import store_successful_query, retrieve_similar_queries, check_duplication
 
 load_dotenv()
 gemini_key=os.getenv('GEMINI_API_KEY')
 
 root_path = os.getcwd()
+
+conversation_history = []
 
 logging_dict = {
     'user_question': None,
@@ -38,6 +40,41 @@ def logging(log_dict):
         logging_df.to_csv(log_file, mode='a', header=False, index=False)
     else:
         logging_df.to_csv(log_file, mode='w', header=True, index=False)
+
+def add_to_conversation(question, sql, rows_returned):
+    """Add a turn to conversation history."""
+    turn = {
+        "turn": len(conversation_history) + 1,
+         "question": question,
+         "sql": sql,
+         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+         "rows_returned": rows_returned
+    }
+
+    conversation_history.append(turn)
+
+    if len(conversation_history) > 3:
+        conversation_history.pop(0)
+
+def get_conversation_context():
+    """Format conversation history for prompt."""
+    if not conversation_history:
+        return ""
+    
+    context = "\n\nPrevious conversation:\n"
+    for turn in conversation_history:
+        context += f"\nTurn {turn['turn']}:\n"
+        context += f"User: \"{turn['question']}\"\n"
+        context += f"SQL: {turn['sql']}\n"
+
+    context += "\nNow answer the current question using context if needed.\n"
+    return context
+
+def clear_conversation():
+    """Clear conversation memory."""
+    global conversation_history
+    conversation_history = []
+    print("Conversation cleared")
 
 def generate_sql(user_question):
     """
@@ -67,13 +104,14 @@ def generate_sql(user_question):
     logging_dict['retrieved_count'] = retrieved_examples_count
 
     try:
+        conversation_context = get_conversation_context()
         print("🤖 Fetching from LLM...")
         start_time = time.time()
 
         llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             temperature=0,  
-            max_tokens=500,
+            max_tokens=2000,
             timeout=None,
             max_retries=2,
             convert_system_message_to_human=True
@@ -83,7 +121,7 @@ def generate_sql(user_question):
 
         chain = prompt | llm | output_parser
 
-        sql = chain.invoke({"question": user_question, "retrieved_examples": retrieved_examples})
+        sql = chain.invoke({"question": user_question, "retrieved_examples": retrieved_examples, "conversation_context": conversation_context})
         sql = llm_output_clean(sql)
 
         end_time = time.time()
@@ -113,16 +151,14 @@ def ask_database(user_question):
         error_str = str(e)
         if "429" in error_str or "quota" in error_str.lower() or "rate limit" in error_str.lower():
             print("🚫 API Rate Limit Exceeded!")
-            print("⏰ Your Gemini API quota is exhausted. Please wait and try again later.")
-            print(f"💡 Tip: Check your quota at https://aistudio.google.com")
+            print("Gemini API quota is exhausted. Please wait and try again later.")
+            print(f"Tip: Check your quota at https://aistudio.google.com")
             logging_dict['status'] = 'failed'
             logging_dict['error'] = "Rate limit exceeded"
             logging(logging_dict)
             return None
         else:
             raise e
-
-    sql, retrieved_examples = generate_sql(user_question)
 
     if sql == None:
         print("❌ Could not generate SQL. Your question might be ambiguous.")
@@ -167,22 +203,13 @@ def ask_database(user_question):
                     else:
                         print("⚠️ Query executed successfully but returned no results.")
                     
+                    add_to_conversation(user_question, sql, rows_returned)
+                    
                     logging_dict['status'] = 'success'
                     logging_dict['error'] = None
                     logging(logging_dict)
 
-                    should_store = True
-                    
-                    if retrieved_examples and len(retrieved_examples) > 0:
-                        # Check first result's similarity
-                        first_result = retrieved_examples[0]
-                        similarity_score = first_result.get('similarity_score', 1.0)
-                        
-                        if similarity_score < 0.2:
-                            print(f"⏭️ Skipping storage - very similar to existing query (score: {similarity_score:.3f})")
-                            should_store = False
-                    
-                    if should_store:
+                    if check_duplication(sql, retrieved_examples):
                         store_successful_query(user_question, sql, rows_returned, execution_time)
                         print("💾 Query stored in ChromaDB")
 
@@ -203,7 +230,7 @@ def ask_database(user_question):
 
 # Test examples
 if __name__ == "__main__":
-    user_questions = 'Show me 10 customers from Sao Paulo'
+    user_questions = 'How many customers are there?'
     ask_database(user_questions)
 
     

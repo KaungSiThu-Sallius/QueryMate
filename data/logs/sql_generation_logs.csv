@@ -1,2 +1,68 @@
 user_question,timestamp,generated_sql,execution_time_ms,retrieved_count,retrieval_time_ms,rag_used,status,error
 
+Which customers left 5-star reviews and spent over 500?,2026-03-20 13:57:12,"SELECT DISTINCT c.customer_id, c.customer_unique_id, c.customer_",5224.21,3,101.59,True,failed,"Error calling model 'gemini-2.5-flash' (RESOURCE_EXHAUSTED): 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 39.645867863s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '39s'}]}}"
+Which customers left 5-star reviews and spent over 500?,2026-03-20 13:57:12,"SELECT DISTINCT c.customer_id, c.customer_unique_id, c.customer_",5224.21,3,101.59,True,failed,Empty SQL
+Which customers left 5-star reviews and spent over 500?,2026-03-21 12:33:03,"WITH FiveStarReviewers AS (
+    SELECT DISTINCT c.customer_id
+    FROM customers c
+    JOIN orders o ON c.customer_id = o.customer_id",5406.72,3,294.83,True,failed,Only SELECT queries are allowed
+Which customers left 5-star reviews and spent over 500?,2026-03-21 12:34:25,"SELECT DISTINCT
+    c.customer_id,
+    c.customer_unique_id,
+    c.customer_city,
+    c.customer_state
+FROM",5142.43,3,266.45,True,failed,"Execution failed on sql 'SELECT DISTINCT
+    c.customer_id,
+    c.customer_unique_id,
+    c.customer_city,
+    c.customer_state
+FROM': (psycopg2.errors.SyntaxError) syntax error at end of input
+LINE 6: FROM
+            ^
+
+[SQL: SELECT DISTINCT
+    c.customer_id,
+    c.customer_unique_id,
+    c.customer_city,
+    c.customer_state
+FROM]
+(Background on this error at: https://sqlalche.me/e/20/f405)"
+Which customers left 5-star reviews and spent over 500?,2026-03-21 12:35:29,"SELECT
+    c.customer_id,
+    c.customer_unique_id,
+    ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_spent_on_5_star_orders
+FROM",7650.01,3,266.66,True,failed,"Execution failed on sql 'SELECT
+    c.customer_id,
+    c.customer_unique_id,
+    ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_spent_on_5_star_orders
+FROM': (psycopg2.errors.SyntaxError) syntax error at end of input
+LINE 5: FROM
+            ^
+
+[SQL: SELECT
+    c.customer_id,
+    c.customer_unique_id,
+    ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_spent_on_5_star_orders
+FROM]
+(Background on this error at: https://sqlalche.me/e/20/f405)"
+Which customers left 5-star reviews and spent over 500?,2026-03-21 12:35:59,"SELECT
+    c.customer_id,
+    c.customer_unique_id,
+    ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_spent_on_5_star_orders
+FROM
+    customers c
+JOIN
+    orders o ON c.customer_id = o.customer_id
+JOIN
+    order_reviews r ON o.order_id = r.order_id
+JOIN
+    order_items oi ON o.order_id = oi.order_id
+WHERE
+    r.review_score = 5
+GROUP BY
+    c.customer_id,
+    c.customer_unique_id
+HAVING
+    SUM(oi.price + oi.freight_value) > 500
+LIMIT 100;",8120.41,3,277.77,True,success,
+How many customers are there?,2026-03-21 12:46:03,SELECT COUNT(*) as customer_count FROM customers;,1303.39,3,274.73,True,success,
