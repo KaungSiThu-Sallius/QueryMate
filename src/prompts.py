@@ -79,8 +79,6 @@ prompt_template = PromptTemplate.from_template(
         7. For "revenue" or "sales", calculate: SUM(price + freight_value) from order_items
         8. Use table aliases for readability (e.g., 'c' for customers, 'o' for orders)
 
-        {conversation_context}
-
         EXAMPLES:
 
         Question: How many customers are there?
@@ -117,11 +115,24 @@ prompt_template = PromptTemplate.from_template(
         Additional relevant examples from past queries
         {retrieved_examples}
 
+        When answering the current question:
+        1. Check if it references previous turns (uses "them", "it", "those")
+        2. If yes, use the WHERE clause or table from the previous SQL
+        3. Modify the previous SQL to answer the new question
+        4. If no reference, answer independently
+
+        Example:
+        Previous: SELECT * FROM customers WHERE state='SP' LIMIT 100
+        Current: "How many of them?"
+        Answer: SELECT COUNT(*) FROM customers WHERE state='SP'
+        (Kept the WHERE clause, changed SELECT COUNT and removed LIMIT)
+
+        {conversation_context}
 
         Now convert this question into a SQL query:
-
+        
         Remark: Timestamp data are between 2024 and 2026. When user prompt full city name remember to change to lowercase.
-
+        
         Question: {question}
         SQL:
     """

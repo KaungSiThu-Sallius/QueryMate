@@ -66,3 +66,30 @@ HAVING
     SUM(oi.price + oi.freight_value) > 500
 LIMIT 100;",8120.41,3,277.77,True,success,
 How many customers are there?,2026-03-21 12:46:03,SELECT COUNT(*) as customer_count FROM customers;,1303.39,3,274.73,True,success,
+Show customers from Rio,2026-03-21 17:37:45,"SELECT customer_id, customer_city, customer_state
+FROM customers
+WHERE customer_city = 'rio de janeiro'
+LIMIT 100;",2570.34,3,357.22,True,success,
+how many?,2026-03-21 17:37:45,"SELECT COUNT(*)
+FROM customers
+WHERE customer_city = 'rio de janeiro';",1619.9,3,143.87,True,success,
+How many customers are from rio,2026-03-21 17:38:29,SELECT COUNT(*) FROM customers WHERE LOWER(customer_city) = 'rio de janeiro';,2605.7,3,225.9,True,success,
+Show me all customers,2026-03-21 17:40:04,"SELECT customer_id, customer_unique_id, customer_zip_code_prefix, customer_city, customer_state FROM customers LIMIT 100",1723.27,3,383.46,True,success,
+Only from São Paulo,2026-03-21 17:40:04,"SELECT customer_id, customer_unique_id, customer_zip_code_prefix, customer_city, customer_state FROM customers WHERE customer_city = 'sao paulo' LIMIT 100",2271.03,3,151.56,True,success,
+Show me all customers,2026-03-21 17:41:22,"SELECT customer_id, customer_unique_id, customer_zip_code_prefix, customer_city, customer_state FROM customers LIMIT 100",1629.56,3,359.49,True,success,
+Show me all customers,2026-03-21 17:42:00,"SELECT customer_id, customer_unique_id, customer_zip_code_prefix, customer_city, customer_state FROM customers LIMIT 100",1539.38,3,352.06,True,success,
+Only from Sao Paulo,2026-03-21 17:42:00,"SELECT customer_id, customer_unique_id, customer_zip_code_prefix, customer_city, customer_state FROM customers WHERE customer_city = 'sao paulo' LIMIT 100",1751.37,3,191.28,True,success,
+How many of them?,2026-03-21 17:42:00,SELECT COUNT(*) FROM customers WHERE customer_city = 'sao paulo',2198.07,3,188.47,True,success,
+What's the total revenue?,2026-03-21 17:42:00,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) as total_revenue FROM order_items oi",1530.27,3,184.51,True,success,
+By state,2026-03-21 17:42:00,"SELECT c.customer_state, ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) as total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+JOIN customers c ON o.customer_id = c.customer_id
+GROUP BY c.customer_state
+ORDER BY total_revenue DESC
+LIMIT 100;",2209.62,3,207.98,True,success,
+Show me orders,2026-03-21 17:42:00,"SELECT order_id, customer_id, order_status, order_purchase_timestamp, order_approved_at, order_delivered_carrier_date, order_delivered_customer_date, order_estimated_delivery_date FROM orders LIMIT 100",1728.18,3,254.57,True,success,
+With customer information,2026-03-21 17:42:00,"SELECT o.order_id, o.customer_id, c.customer_unique_id, c.customer_zip_code_prefix, c.customer_city, c.customer_state, o.order_status, o.order_purchase_timestamp, o.order_approved_at, o.order_delivered_carrier_date, o.order_delivered_customer_date, o.order_estimated_delivery_date
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+LIMIT 100;",3159.93,3,235.25,True,success,

@@ -230,8 +230,23 @@ def ask_database(user_question):
 
 # Test examples
 if __name__ == "__main__":
-    user_questions = 'How many customers are there?'
-    ask_database(user_questions)
+    print("Welcome to QueryMate - Ask Questions (type 'exit' to quit)")
+
+    while True:
+        user_question = input('\n Your question: ')
+        if user_question.lower() in ['exit', 'quit', 'q']:
+            print("👋 Goodbye!")
+            break
+        
+        if user_question.lower() in ['clear', 'reset', 'new']:
+            clear_conversation()
+            continue
+        
+        if user_question.strip():
+            ask_database(user_question)
+
+        else:
+            print("Please enter a question")
 
     
 # Test questions:
