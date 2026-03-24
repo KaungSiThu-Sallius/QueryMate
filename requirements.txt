@@ -1,0 +1,12 @@
+psycopg2-binary
+sqlalchemy
+pandas
+google-generativeai
+langchain-google-genai
+langchain-core
+langchain
+chromadb
+streamlit
+python-dotenv
+plotly
+openpyxl

@@ -341,3 +341,41 @@ JOIN orders o ON oi.order_id = o.order_id
 WHERE o.order_purchase_timestamp BETWEEN '2024-01-01' AND '2026-12-31'
 GROUP BY 1
 ORDER BY 1 ASC;",1593.07,3,177.5,True,4,True,success,
+Top 5 product categories,2026-03-24 11:53:59,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",2001.44,3,458.71,True,1,False,success,
+Total revenue in 2024,2026-03-24 11:54:38,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) as total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE EXTRACT(YEAR FROM o.order_purchase_timestamp) = 2024;",1614.4,3,219.43,True,2,True,success,
+How many customers are there?,2026-03-24 12:28:43,SELECT COUNT(*) AS customer_count FROM customers;,1447.58,3,344.48,True,1,False,success,
+Break it down by state,2026-03-24 12:29:45,"SELECT customer_state, COUNT(customer_id) AS customer_count
+FROM customers
+GROUP BY customer_state
+ORDER BY customer_count DESC;",7857.54,3,369.87,True,2,True,success,
+Sort by highest first,2026-03-24 12:30:41,"SELECT customer_state, COUNT(customer_id) AS customer_count
+FROM customers
+GROUP BY customer_state
+ORDER BY customer_count DESC;",1401.01,3,206.89,True,3,True,success,
+Top 5 product categories,2026-03-24 12:31:08,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1906.18,3,191.98,True,4,True,success,
+Show bottom 10 instead,2026-03-24 12:31:28,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count ASC
+LIMIT 10;",1683.24,3,222.13,True,4,True,success,
+Break it down by state,2026-03-24 12:32:16,"SELECT customer_state, COUNT(customer_id) AS customer_count
+FROM customers
+GROUP BY customer_state
+ORDER BY customer_count DESC;",1685.93,3,289.82,True,4,True,success,

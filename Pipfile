@@ -12,6 +12,10 @@ langchain-google-genai = "*"
 langchain-core = "*"
 langchain = "*"
 chromadb = "*"
+streamlit = "*"
+python-dotenv = "*"
+openpyxl = "*"
+plotly = "*"
 
 [dev-packages]
 ipykernel = "*"
