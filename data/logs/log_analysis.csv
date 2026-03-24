@@ -1,2 +1,2 @@
-,total_queries,with_rag_retrieved,without_rag_retrieved,success_no_rag,avg_examples_retrieved,success_low_rag,success_high_rag,rag_improvement
-0,94,"(86, 91.49)","(8, 8.51)",12.5,1.85,100.0,100.0,87.5
+total_queries,successful_queries,failed_queries,overall_success_rate,with_rag_count,with_rag_percent,without_rag_count,without_rag_percent,avg_examples_retrieved,avg_retrieval_time_ms,success_no_rag,success_low_rag,success_high_rag,rag_improvement,avg_generation_time_ms,min_generation_time_ms,max_generation_time_ms,total_conversations,avg_conversation_length,turn_1_success,turn_2_success,turn_3_success,context_used_count,context_used_percent,analysis_timestamp
+61,55,6,90.16,60,98.36,1,1.64,2.9,247.78,100.0,100.0,89.66,-10.34,1799.29,0.0,4393.89,4,3.62,100.0,75.0,90.57,21,34.43,2026-03-23 22:57:38

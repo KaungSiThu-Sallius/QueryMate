@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from datetime import datetime
 
 def analyze_logs():
     """Analyze SQL generation logs and create comprehensive metrics report."""

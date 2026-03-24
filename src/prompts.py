@@ -131,7 +131,7 @@ prompt_template = PromptTemplate.from_template(
 
         Now convert this question into a SQL query:
         
-        Remark: Timestamp data are between 2024 and 2026. When user prompt full city name remember to change to lowercase.
+        Remark: Timestamp data are between 2023 and 2025. When user prompt full city name remember to change to lowercase.
         
         Question: {question}
         SQL:

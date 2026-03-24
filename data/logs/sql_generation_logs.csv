@@ -1,3 +1,343 @@
 user_question,timestamp,generated_sql,execution_time_ms,retrieved_count,retrieval_time_ms,rag_used,turn_number,uses_context,status,error
-How many customers are there,2026-03-21 23:49:44,SELECT COUNT(*) as customer_count FROM customers;,1860.19,3,417.14,True,1,False,success,
-How many are from rio,2026-03-21 23:50:00,SELECT COUNT(*) FROM customers WHERE customer_city = 'rio de janeiro';,2124.29,3,222.28,True,2,False,success,
+
+How many orders do we have?,2026-03-23 22:39:37,SELECT COUNT(*) FROM orders;,1821.33,0,309.06,False,1,False,success,
+How many customers are there?,2026-03-23 22:40:05,SELECT COUNT(*) AS customer_count FROM customers;,1605.32,1,211.29,True,2,False,success,
+How many products are in the database?,2026-03-23 22:40:14,SELECT COUNT(*) FROM products;,2401.34,2,182.67,True,3,False,success,
+How many reviews have been submitted?,2026-03-23 22:40:21,SELECT COUNT(*) FROM order_reviews;,1746.04,3,183.91,True,4,True,success,
+Show me 10 customers,2026-03-23 22:40:34,"SELECT customer_id, customer_unique_id, customer_city, customer_state
+FROM customers
+LIMIT 10;",1887.77,3,305.19,True,4,True,success,
+Show me customers from São Paulo,2026-03-23 22:41:03,"SELECT customer_id, customer_unique_id, customer_city, customer_state
+FROM customers
+WHERE LOWER(customer_city) = 'sao paulo'
+LIMIT 100;",1996.12,3,228.19,True,4,False,success,
+List customers from Rio de Janeiro,2026-03-23 22:41:18,"SELECT customer_id, customer_unique_id, customer_city, customer_state
+FROM customers
+WHERE LOWER(customer_city) = 'rio de janeiro'
+LIMIT 100;",2672.83,3,217.58,True,4,False,success,
+Show me 20 products,2026-03-23 22:41:34,"SELECT product_id, product_category_name, product_name_lenght, product_weight_g
+FROM products
+LIMIT 20;",1606.56,3,247.74,True,4,True,success,
+Display orders with status delivered,2026-03-23 22:41:50,"SELECT order_id, customer_id, order_status, order_purchase_timestamp
+FROM orders
+WHERE order_status = 'delivered'
+LIMIT 100;",1736.57,3,240.47,True,4,True,success,
+Show me customers from the state of SP,2026-03-23 22:41:57,"SELECT customer_id, customer_unique_id, customer_city, customer_state
+FROM customers
+WHERE customer_state = 'SP'
+LIMIT 100;",2222.79,3,182.65,True,4,False,success,
+What is the total revenue?,2026-03-23 22:42:21,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric,2) as total_revenue
+FROM order_items oi;",1949.47,3,204.49,True,4,False,success,
+What's the average order value?,2026-03-23 22:42:31,"SELECT ROUND(SUM(oi.price + oi.freight_value) / COUNT(DISTINCT oi.order_id)::numeric, 2) AS average_order_value
+FROM order_items oi;",3317.28,3,216.23,True,4,False,failed,"Execution failed on sql 'SELECT ROUND(SUM(oi.price + oi.freight_value) / COUNT(DISTINCT oi.order_id)::numeric, 2) AS average_order_value
+FROM order_items oi;': (psycopg2.errors.UndefinedFunction) function round(double precision, integer) does not exist
+LINE 1: SELECT ROUND(SUM(oi.price + oi.freight_value) / COUNT(DISTIN...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+[SQL: SELECT ROUND(SUM(oi.price + oi.freight_value) / COUNT(DISTINCT oi.order_id)::numeric, 2) AS average_order_value
+FROM order_items oi;]
+(Background on this error at: https://sqlalche.me/e/20/f405)"
+What's the average order value?,2026-03-23 22:42:57,"SELECT ROUND(AVG(order_total_value)::numeric, 2) AS average_order_value
+FROM (
+    SELECT oi.order_id, SUM(oi.price + oi.freight_value) AS order_total_value
+    FROM order_items oi
+    GROUP BY oi.order_id
+) AS order_values;",3937.53,3,210.65,True,4,False,success,
+What is the maximum payment value?,2026-03-23 22:43:10,SELECT MAX(payment_value) AS maximum_payment_value FROM order_payments;,1686.28,3,274.04,True,4,False,success,
+What's the minimum freight cost?,2026-03-23 22:43:21,SELECT MIN(freight_value) AS minimum_freight_cost FROM order_items;,1550.88,3,340.57,True,4,False,success,
+Show total revenue by state,2026-03-23 22:43:30,"SELECT c.customer_state, ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+JOIN customers c ON o.customer_id = c.customer_id
+GROUP BY c.customer_state
+ORDER BY total_revenue DESC;",2303.28,3,229.15,True,4,False,success,
+Show average order value by customer state,2026-03-23 22:43:37,"SELECT c.customer_state, ROUND(AVG(order_total_value)::numeric, 2) AS average_order_value
+FROM (
+    SELECT oi.order_id, SUM(oi.price + oi.freight_value) AS order_total_value
+    FROM order_items oi
+    GROUP BY oi.order_id
+) AS order_values
+JOIN orders o ON order_values.order_id = o.order_id
+JOIN customers c ON o.customer_id = c.customer_id
+GROUP BY c.customer_state
+ORDER BY average_order_value DESC;",2440.52,3,209.55,True,4,False,success,
+What's the total payment value by payment type?,2026-03-23 22:43:43,"SELECT payment_type, ROUND(SUM(payment_value)::numeric, 2) AS total_payment_value
+FROM order_payments
+GROUP BY payment_type
+ORDER BY total_payment_value DESC;",3070.22,3,179.18,True,4,False,success,
+Show average review score by product category,2026-03-23 22:45:19,"SELECT pct.product_category_name_english, ROUND(AVG(r.review_score)::numeric, 2) AS average_review_score
+FROM order_reviews r
+JOIN order_items oi ON r.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY average_review_score DESC;",2712.26,3,413.74,True,1,False,success,
+Show customers and their orders,2026-03-23 22:45:31,,0,3,196.42,True,2,False,failed,"Error calling model 'gemini-2.5-flash' (RESOURCE_EXHAUSTED): 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 26.16536965s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '26s'}]}}"
+Show customers and their orders,2026-03-23 22:46:14,"SELECT c.customer_id, c.customer_unique_id, c.customer_city, c.customer_state, o.order_id, o.order_status, o.order_purchase_timestamp
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+LIMIT 100;",1146.04,3,341.1,True,1,False,success,
+Show average review score by product category,2026-03-23 22:46:30,"SELECT pct.product_category_name_english, ROUND(AVG(r.review_score)::numeric, 2) AS average_review_score
+FROM order_reviews r
+JOIN order_items oi ON r.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY average_review_score DESC;",1366.76,3,237.06,True,2,False,success,
+Show orders with customer information,2026-03-23 22:46:38,"SELECT c.customer_id, c.customer_unique_id, c.customer_city, c.customer_state, o.order_id, o.order_status, o.order_purchase_timestamp
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+LIMIT 100;",1148.96,3,230.28,True,3,True,success,
+Display products with their order details,2026-03-23 22:46:46,"SELECT p.product_id, p.product_category_name, oi.order_id, oi.price, oi.freight_value
+FROM products p
+JOIN order_items oi ON p.product_id = oi.product_id
+LIMIT 100;",1220.27,3,193.86,True,4,True,success,
+Show orders with payment information,2026-03-23 22:46:59,"SELECT o.order_id, o.customer_id, o.order_purchase_timestamp, op.payment_type, op.payment_value, op.payment_installments
+FROM orders o
+JOIN order_payments op ON o.order_id = op.order_id
+LIMIT 100;",1296.25,3,276.68,True,4,True,success,
+Show product categories in English with sales count,2026-03-23 22:47:12,"SELECT pct.product_category_name_english, COUNT(oi.order_id) AS sales_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY sales_count DESC
+LIMIT 100;",2188.63,3,340.95,True,4,True,success,
+What are the top selling product categories?,2026-03-23 22:47:28,"SELECT pct.product_category_name_english, SUM(oi.price + oi.freight_value) AS total_revenue
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY total_revenue DESC
+LIMIT 100;",1313.56,3,659.62,True,4,False,success,
+Show me products with their English category names,2026-03-23 22:47:37,"SELECT p.product_id, pct.product_category_name_english
+FROM products p
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+LIMIT 100;",1377.6,3,198.63,True,4,True,success,
+Which product categories have the most orders?,2026-03-23 22:47:44,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 100;",1537.52,3,243.58,True,4,False,success,
+What are the top 5 product categories?,2026-03-23 22:47:53,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1630.72,3,245.95,True,4,False,success,
+Show me the top 10 customers by spending,2026-03-23 22:48:02,"SELECT c.customer_id, SUM(oi.price + oi.freight_value) AS total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY c.customer_id
+ORDER BY total_spent DESC
+LIMIT 10;",1169.74,3,198.8,True,4,False,success,
+What are the bottom 5 states by order count?,2026-03-23 22:48:10,"SELECT c.customer_state, COUNT(DISTINCT o.order_id) as order_count
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+GROUP BY c.customer_state
+ORDER BY order_count ASC
+LIMIT 5;",1166.88,3,224.04,True,4,False,success,
+Show the top 3 most expensive products,2026-03-23 22:48:18,"SELECT p.product_id, p.product_category_name, SUM(oi.price) AS total_price
+FROM products p
+JOIN order_items oi ON p.product_id = oi.product_id
+GROUP BY p.product_id, p.product_category_name
+ORDER BY total_price DESC
+LIMIT 3;",1042.66,3,189.14,True,4,False,success,
+Which are the top 20 cities by customer count?,2026-03-23 22:48:28,"SELECT c.customer_city, COUNT(DISTINCT c.customer_id) AS customer_count
+FROM customers c
+GROUP BY c.customer_city
+ORDER BY customer_count DESC
+LIMIT 20;",1679.69,3,256.09,True,4,True,success,
+Show me the 5 most recent orders,2026-03-23 22:48:36,"SELECT order_id, customer_id, order_purchase_timestamp
+FROM orders
+ORDER BY order_purchase_timestamp DESC
+LIMIT 5;",1238.85,3,195.56,True,4,False,success,
+How many orders per month in 2026,2026-03-23 22:48:49,"SELECT STRFTIME('%Y-%m', order_purchase_timestamp) AS order_month, COUNT(order_id) AS order_count
+FROM orders
+WHERE STRFTIME('%Y', order_purchase_timestamp) = '2026'
+GROUP BY order_month
+ORDER BY order_month;",1381.71,3,179.07,True,4,False,failed,"Execution failed on sql 'SELECT STRFTIME('%Y-%m', order_purchase_timestamp) AS order_month, COUNT(order_id) AS order_count
+FROM orders
+WHERE STRFTIME('%Y', order_purchase_timestamp) = '2026'
+GROUP BY order_month
+ORDER BY order_month;': (psycopg2.errors.UndefinedFunction) function strftime(unknown, timestamp without time zone) does not exist
+LINE 1: SELECT STRFTIME('%Y-%m', order_purchase_timestamp) AS order_...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+[SQL: SELECT STRFTIME('%%Y-%%m', order_purchase_timestamp) AS order_month, COUNT(order_id) AS order_count
+FROM orders
+WHERE STRFTIME('%%Y', order_purchase_timestamp) = '2026'
+GROUP BY order_month
+ORDER BY order_month;]
+(Background on this error at: https://sqlalche.me/e/20/f405)"
+Show revenue by month,2026-03-23 22:49:05,"SELECT
+    strftime('%Y-%m', o.order_purchase_timestamp) AS order_month,
+    ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS monthly_revenue
+FROM
+    orders o
+JOIN
+    order_items oi ON o.order_id = oi.order_id
+WHERE
+    CAST(strftime('%Y', o.order_purchase_timestamp) AS INTEGER) BETWEEN 2024 AND 2026
+GROUP BY
+    order_month
+ORDER BY
+    order_month;",4082.57,3,220.27,True,4,True,failed,"Execution failed on sql 'SELECT
+    strftime('%Y-%m', o.order_purchase_timestamp) AS order_month,
+    ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS monthly_revenue
+FROM
+    orders o
+JOIN
+    order_items oi ON o.order_id = oi.order_id
+WHERE
+    CAST(strftime('%Y', o.order_purchase_timestamp) AS INTEGER) BETWEEN 2024 AND 2026
+GROUP BY
+    order_month
+ORDER BY
+    order_month;': (psycopg2.errors.UndefinedFunction) function strftime(unknown, timestamp without time zone) does not exist
+LINE 2:     strftime('%Y-%m', o.order_purchase_timestamp) AS order_m...
+            ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+
+[SQL: SELECT
+    strftime('%%Y-%%m', o.order_purchase_timestamp) AS order_month,
+    ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS monthly_revenue
+FROM
+    orders o
+JOIN
+    order_items oi ON o.order_id = oi.order_id
+WHERE
+    CAST(strftime('%%Y', o.order_purchase_timestamp) AS INTEGER) BETWEEN 2024 AND 2026
+GROUP BY
+    order_month
+ORDER BY
+    order_month;]
+(Background on this error at: https://sqlalche.me/e/20/f405)"
+What was the total revenue in January 2025,2026-03-23 22:49:29,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric,2) as total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE EXTRACT(YEAR FROM o.order_purchase_timestamp) = 2025
+AND EXTRACT(MONTH FROM o.order_purchase_timestamp) = 1;",1391.44,3,224.98,True,4,False,success,
+Show orders grouped by year,2026-03-23 22:49:38,"SELECT EXTRACT(YEAR FROM order_purchase_timestamp) AS order_year, COUNT(order_id) AS order_count
+FROM orders
+GROUP BY order_year
+ORDER BY order_year;",2484.94,3,207.72,True,4,False,success,
+How many orders were placed each week in 2025,2026-03-23 22:49:53,"SELECT
+    EXTRACT(WEEK FROM order_purchase_timestamp) AS order_week,
+    COUNT(order_id) AS order_count
+FROM
+    orders
+WHERE
+    EXTRACT(YEAR FROM order_purchase_timestamp) = 2025
+GROUP BY
+    order_week
+ORDER BY
+    order_week;",1150.29,3,221.54,True,4,False,success,
+What's the revenue trend over time?,2026-03-23 22:50:13,,0,3,244.1,True,4,False,failed,"Error calling model 'gemini-2.5-flash-lite' (RESOURCE_EXHAUSTED): 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash-lite\nPlease retry in 43.845985063s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-2.5-flash-lite', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '43s'}]}}"
+What's the revenue trend over time?,2026-03-23 22:51:37,,0,3,334.78,True,4,False,failed,"Error calling model 'gemini-2.5-flash-lite' (RESOURCE_EXHAUSTED): 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash-lite\nPlease retry in 20.198307241s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-lite'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '20s'}]}}"
+What's the revenue trend over time?,2026-03-23 22:52:05,"SELECT DATE_TRUNC('month', o.order_purchase_timestamp) AS month, 
+       ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_purchase_timestamp >= '2024-01-01' 
+  AND o.order_purchase_timestamp < '2027-01-01'
+GROUP BY 1
+ORDER BY 1 ASC;",2086.26,3,403.69,True,1,False,success,
+Show customers from São Paulo with more than 2 orders,2026-03-23 22:52:20,"SELECT c.customer_id, c.customer_unique_id, COUNT(o.order_id) as order_count
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+WHERE LOWER(c.customer_city) = 'sao paulo'
+GROUP BY c.customer_id, c.customer_unique_id
+HAVING COUNT(o.order_id) > 2
+LIMIT 100;",1849.59,3,597.07,True,2,True,success,
+Which orders were delivered late?,2026-03-23 22:52:38,"SELECT o.order_id, o.order_delivered_customer_date, o.order_estimated_delivery_date
+FROM orders o
+WHERE o.order_delivered_customer_date > o.order_estimated_delivery_date
+  AND o.order_status = 'delivered'
+LIMIT 100;",1710.89,3,220.19,True,3,False,success,
+"Show products with price greater than 100""",2026-03-23 22:52:46,"SELECT p.product_id, p.product_category_name, oi.price
+FROM products p
+JOIN order_items oi ON p.product_id = oi.product_id
+WHERE oi.price > 100
+LIMIT 100;",1993.69,3,190.46,True,4,True,success,
+Display orders from 2017 with status delivered,2026-03-23 22:52:53,"SELECT order_id, customer_id, order_status, order_purchase_timestamp
+FROM orders
+WHERE EXTRACT(YEAR FROM order_purchase_timestamp) = 2017
+  AND order_status = 'delivered'
+LIMIT 100;",1440.43,3,185.25,True,4,True,success,
+Show customers from SP or RJ states,2026-03-23 22:53:12,"SELECT customer_id, customer_unique_id, customer_city, customer_state
+FROM customers
+WHERE customer_state IN ('SP', 'RJ')
+LIMIT 100;",2118.79,3,224.21,True,4,False,success,
+Which orders have 5-star reviews?,2026-03-23 22:53:19,"SELECT o.order_id, o.customer_id, o.order_purchase_timestamp, r.review_score
+FROM orders o
+JOIN order_reviews r ON o.order_id = r.order_id
+WHERE r.review_score = 5
+LIMIT 100;",1614.37,3,250.89,True,4,False,success,
+Show me sales,2026-03-23 22:53:37,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) as total_sales
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_purchase_timestamp BETWEEN '2024-01-01' AND '2026-12-31'
+LIMIT 100;",2693.62,3,226.74,True,4,True,success,
+What about revenue?,2026-03-23 22:53:46,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) as total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_purchase_timestamp BETWEEN '2024-01-01' AND '2026-12-31';",1455.62,3,199.21,True,4,True,success,
+How many users are there?,2026-03-23 22:54:06,SELECT COUNT(customer_id) AS total_users FROM customers;,1496.93,3,235.34,True,4,False,success,
+Which customers left 5-star reviews and spent over 500?,2026-03-23 22:54:21,"SELECT c.customer_id, SUM(oi.price + oi.freight_value) as total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN order_reviews r ON o.order_id = r.order_id
+WHERE r.review_score = 5
+GROUP BY c.customer_id
+HAVING SUM(oi.price + oi.freight_value) > 500
+LIMIT 100;",1706.81,3,207.77,True,4,False,success,
+Show me orders from 20255,2026-03-23 22:55:05,"SELECT order_id, customer_id, order_purchase_timestamp
+FROM orders
+WHERE EXTRACT(YEAR FROM order_purchase_timestamp) = 2025
+LIMIT 100;",1703.47,3,206.16,True,4,False,success,
+With payment information,2026-03-23 22:55:19,"SELECT o.order_id, o.customer_id, o.order_purchase_timestamp, op.payment_type, op.payment_value, op.payment_installments
+FROM orders o
+JOIN order_payments op ON o.order_id = op.order_id
+LIMIT 100;",1453.66,3,211.14,True,4,True,success,
+Only credit card payments,2026-03-23 22:55:34,"SELECT o.order_id, o.customer_id, o.order_purchase_timestamp, op.payment_type, op.payment_value, op.payment_installments
+FROM orders o
+JOIN order_payments op ON o.order_id = op.order_id
+WHERE op.payment_type = 'credit_card'
+LIMIT 100;",2188.97,3,210.03,True,4,True,success,
+How many?,2026-03-23 22:55:47,"SELECT COUNT(*)
+FROM orders o
+JOIN order_payments op ON o.order_id = op.order_id
+WHERE op.payment_type = 'credit_card'
+AND EXTRACT(YEAR FROM o.order_purchase_timestamp) = 2025;",1711.29,3,233.61,True,4,True,success,
+hat are the product categories?,2026-03-23 22:56:10,"SELECT DISTINCT pct.product_category_name_english
+FROM product_category_name_translation pct
+WHERE pct.product_category_name_english IS NOT NULL
+LIMIT 100;",1153.37,3,240.08,True,4,False,success,
+Which has the most sales?,2026-03-23 22:56:20,"SELECT pct.product_category_name_english, ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_revenue
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_purchase_timestamp BETWEEN '2024-01-01' AND '2026-12-31'
+GROUP BY pct.product_category_name_english
+ORDER BY total_revenue DESC
+LIMIT 1;",4393.89,3,201.04,True,4,False,success,
+Show me revenue,2026-03-23 22:56:38,"SELECT ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) as total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_purchase_timestamp BETWEEN '2024-01-01' AND '2026-12-31';",1712.46,3,247.34,True,4,True,success,
+By month,2026-03-23 22:56:44,"SELECT DATE_TRUNC('month', o.order_purchase_timestamp) AS month, 
+       ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_purchase_timestamp BETWEEN '2024-01-01' AND '2026-12-31'
+GROUP BY 1
+ORDER BY 1 ASC;",1593.07,3,177.5,True,4,True,success,
