@@ -434,3 +434,145 @@ ORDER BY order_count DESC
 LIMIT 5;",1695.85,3,204.44,True,1,False,success,
 what can you do,2026-03-25 09:57:17,"SELECT 'I can help you query the e-commerce database. For example, I can find information about customers, orders, products, and their categories. I can also calculate metrics like total revenue or the number of orders for specific products or categories. Please ask me a specific question about the data.' AS capabilities;",1251.23,3,201.28,True,1,False,failed,Invalid SQL: missing FROM clause
 How many customers are there?,2026-03-25 10:38:51,SELECT COUNT(*) as customer_count FROM customers;,1239.59,3,322.8,True,1,False,success,
+How many customers are there?,2026-03-25 10:41:46,SELECT COUNT(*) as customer_count FROM customers;,1163.12,3,285.56,True,1,False,success,
+top 10 product,2026-03-25 10:42:16,"SELECT p.product_id, pct.product_category_name_english, SUM(oi.price) AS total_revenue
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY p.product_id, pct.product_category_name_english
+ORDER BY total_revenue DESC
+LIMIT 10;",1336.79,3,220.61,True,2,True,success,
+best revenue 10 country,2026-03-25 10:43:01,"SELECT pct.product_category_name_english, ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_revenue
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_purchase_timestamp BETWEEN '2023-01-01' AND '2025-12-31'
+GROUP BY pct.product_category_name_english
+ORDER BY total_revenue DESC
+LIMIT 10;",1383.56,3,236.33,True,3,True,success,
+Top 5 product categories,2026-03-25 10:44:05,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",2563.54,3,302.55,True,4,True,success,
+Top 5 product categories,2026-03-25 10:46:05,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1732.12,3,206.25,True,1,False,success,
+Top 5 product categories,2026-03-25 10:47:34,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1537.72,3,289.21,True,1,False,success,
+How many customers are there?,2026-03-25 11:33:35,SELECT COUNT(*) as customer_count FROM customers;,1214.11,3,356.97,True,1,False,failed,"Execution error: (psycopg2.OperationalError) connection to server at ""localhost"" (::1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at ""localhost"" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)"
+Top 5 product categories,2026-03-25 11:34:53,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1317.46,3,371.11,True,1,False,failed,"Execution error: (psycopg2.OperationalError) connection to server at ""localhost"" (::1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at ""localhost"" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)"
+Top 5 product categories,2026-03-25 11:43:12,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1193.86,3,379.12,True,1,False,success,
+Top 5 product categories,2026-03-25 12:08:03,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1388.44,3,276.19,True,1,False,success,
+Top 5 product categories,2026-03-25 12:08:41,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1506.56,3,202.88,True,2,True,success,
+Top 5 product categories,2026-03-25 12:09:15,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1253.45,3,205.5,True,3,True,success,
+Top 5 product categories,2026-03-25 12:12:36,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1439.61,3,360.53,True,1,False,success,
+Top 5 product categories,2026-03-25 12:17:16,,0,3,290.74,True,1,False,failed,"Error calling model 'gemini-2.5-flash-lite' (RESOURCE_EXHAUSTED): 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash-lite\nPlease retry in 41.618741503s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-lite'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '41s'}]}}"
+Top 5 product categories,2026-03-25 12:17:34,,0,3,213.51,True,1,False,failed,"Error calling model 'gemini-2.5-flash-lite' (RESOURCE_EXHAUSTED): 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash-lite\nPlease retry in 23.527450404s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-lite'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '23s'}]}}"
+Top 5 product categories,2026-03-25 12:18:46,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",2568.07,3,208.41,True,1,False,success,
+Top 5 product categories,2026-03-25 12:20:26,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",2972.89,3,273.04,True,1,False,success,
+Top 5 product categories,2026-03-25 12:24:18,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",2832.96,3,383.2,True,1,False,success,
+Top 5 product categories,2026-03-25 12:26:39,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",2737.11,3,422.91,True,1,False,success,
+Top 5 product categories,2026-03-25 12:30:39,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",2823.32,3,360.14,True,1,False,success,
+what is the most sale region,2026-03-25 12:47:33,"SELECT c.customer_state, ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+JOIN customers c ON o.customer_id = c.customer_id
+GROUP BY c.customer_state
+ORDER BY total_revenue DESC
+LIMIT 1;",2318.76,3,281.02,True,1,False,success,
+tell me top 5,2026-03-25 12:47:49,"SELECT c.customer_state, ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+JOIN customers c ON o.customer_id = c.customer_id
+GROUP BY c.customer_state
+ORDER BY total_revenue DESC
+LIMIT 5;",2237.19,3,197.98,True,2,True,success,

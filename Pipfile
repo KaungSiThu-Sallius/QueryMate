@@ -16,7 +16,6 @@ streamlit = "*"
 python-dotenv = "*"
 plotly = "*"
 openpyxl = "*"
-streamlit-local-storage = "*"
 
 [dev-packages]
 ipykernel = "*"

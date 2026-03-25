@@ -2,13 +2,14 @@ import sys
 import os
 import random
 import io
+import uuid
+import json
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
-from streamlit_local_storage import LocalStorage
 try:
     import plotly.express as px
     PLOTLY_OK = True
@@ -25,7 +26,7 @@ st.set_page_config(
     menu_items={"About": "**QueryMate** — Ask your database in plain English, powered by Gemini AI."},
 )
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Custom CSS
 st.markdown("""
@@ -65,33 +66,119 @@ except Exception as _exc:
     BACKEND_READY = False
     BACKEND_ERROR = str(_exc)
 
-# Session State
-localS = LocalStorage()
+# Session Persistence
+def _ensure_session_table():
+    """Create chat_sessions table in Supabase if it doesn't exist."""
+    try:
+        engine = get_engine()
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS chat_sessions (
+                    session_id VARCHAR(255) PRIMARY KEY,
+                    state_json JSONB NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """))
+            conn.commit()
+    except Exception:
+        pass 
+
+if BACKEND_READY:
+    _ensure_session_table()
+
+def _get_or_create_session_id():
+    if "_session_id" in st.session_state:
+        return st.session_state["_session_id"]
+    if "session" in st.query_params:
+        sid = st.query_params["session"]
+    else:
+        sid = str(uuid.uuid4())
+        st.query_params["session"] = sid
+    st.session_state["_session_id"] = sid
+    return sid
+
+SESSION_ID = _get_or_create_session_id()
 
 def _init_state():
-    qm_messages = localS.getItem("qm_messages")
-    qm_conv_log = localS.getItem("qm_conv_log")
-
-    defaults = {
-        "messages": qm_messages if isinstance(qm_messages, list) else [],
-        "conv_log": qm_conv_log if isinstance(qm_conv_log, list) else [],
-        "n_queries": 0,
-        "n_success": 0,
-        "n_failed": 0,
-        "n_rag": 0,
-        "total_examples": 0,
-        "times_ms": [],
+    """Load state from Supabase once per browser session, then use in-memory."""
+    DEFAULTS = {
+        "messages": [], "conv_log": [], "n_queries": 0, "n_success": 0,
+        "n_failed": 0, "n_rag": 0, "total_examples": 0, "times_ms": [],
         "started": datetime.now().strftime("%H:%M"),
-        # Settings
-        "show_charts": True,
-        "store_memory": True,
-        "row_limit": 10,
+        "show_charts": True, "store_memory": True, "row_limit": 10,
     }
-    for k, v in defaults.items():
-        if k not in st.session_state:
-            st.session_state[k] = v
+
+    if not st.session_state.get("_db_loaded"):
+        saved = None
+        if BACKEND_READY:
+            try:
+                engine = get_engine()
+                with engine.connect() as conn:
+                    row = conn.execute(
+                        text("SELECT state_json FROM chat_sessions WHERE session_id = :sid"),
+                        {"sid": SESSION_ID}
+                    ).fetchone()
+                    if row:
+                        saved = row[0]  
+            except Exception as e:
+                st.sidebar.warning(f"Could not load session: {e}")
+
+        state = saved if saved else DEFAULTS
+
+        for m in state.get("messages", []):
+            if "df" in m and isinstance(m["df"], list):
+                m["df"] = pd.DataFrame(m["df"]) if m["df"] else pd.DataFrame()
+
+        for k, v in state.items():
+            st.session_state[k] = v 
+
+        st.session_state["_db_loaded"] = True
 
 _init_state()
+
+def _save_session():
+    """Persist current session to Supabase (silent on error)."""
+    if not BACKEND_READY:
+        return
+    keys = ["messages","conv_log","n_queries","n_success","n_failed",
+            "n_rag","total_examples","times_ms","started",
+            "show_charts","store_memory","row_limit"]
+    blob = {}
+    for k in keys:
+        if k not in st.session_state:
+            continue
+        val = st.session_state[k]
+        if k == "messages":
+            safe_msgs = []
+            for m in val:
+                mc = m.copy()
+                if "df" in mc and hasattr(mc["df"], "to_json"):
+                    try:
+                        mc["df"] = json.loads(
+                            mc["df"].head(200).to_json(orient="records", date_format="iso")
+                        )
+                    except Exception:
+                        mc["df"] = []
+                safe_msgs.append(mc)
+            val = safe_msgs
+        blob[k] = val
+    try:
+        engine = get_engine()
+        with engine.connect() as conn:
+            conn.execute(
+                text("""
+                    INSERT INTO chat_sessions (session_id, state_json)
+                    VALUES (:sid, CAST(:state AS jsonb))
+                    ON CONFLICT (session_id) DO UPDATE
+                    SET state_json = EXCLUDED.state_json,
+                        updated_at = CURRENT_TIMESTAMP
+                """),
+                {"sid": SESSION_ID, "state": json.dumps(blob, default=str)}
+            )
+            conn.commit()
+    except Exception as e:
+        st.sidebar.error(f"⚠️ Session save failed: {e}")
+        print(f"[session save error] {e}")
 
 # Helper
 def _clear_all():
@@ -99,11 +186,17 @@ def _clear_all():
         st.session_state[k] = []
     for k in ("n_queries", "n_success", "n_failed", "n_rag", "total_examples"):
         st.session_state[k] = 0
-        
-    localS.deleteItem("qm_messages", key="del_msgs")
-    localS.deleteItem("qm_conv_log", key="del_log")
-    
     if BACKEND_READY:
+        try:
+            engine = get_engine()
+            with engine.connect() as conn:
+                conn.execute(
+                    text("DELETE FROM chat_sessions WHERE session_id = :sid"),
+                    {"sid": SESSION_ID}
+                )
+                conn.commit()
+        except Exception:
+            pass
         backend_clear()
 
 # Visualization 
@@ -421,8 +514,5 @@ if question:
             "ts": datetime.now().strftime("%H:%M"),
         })
         st.session_state.messages.append({"role": "assistant", **res})
-        
-        localS.setItem("qm_messages", st.session_state.messages, key="set_messages")
-        localS.setItem("qm_conv_log", st.session_state.conv_log, key="set_conv")
-        
+        _save_session()
         st.rerun()

@@ -1,106 +1,149 @@
-# 🤖 QueryMate — AI SQL Assistant
+# QueryMate — AI SQL Assistant 🤖
 
-Ask your e-commerce database anything in plain English. QueryMate converts your question into SQL using **Google Gemini**, executes it against a PostgreSQL database, and displays the results in a clean chat interface.
+> **Ask your database questions in plain English. Get instant answers, charts, and insights — powered by Google Gemini AI.**
 
-## Features
+[![Built with Streamlit](https://img.shields.io/badge/Built%20with-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
+[![Powered by Gemini](https://img.shields.io/badge/Powered%20by-Google%20Gemini-4285F4?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Vector DB](https://img.shields.io/badge/Vector%20DB-ChromaDB-orange)](https://www.trychroma.com/)
 
-- 💬 **Natural language to SQL** — powered by Gemini AI
-- 📚 **RAG memory** — learns from successful queries via ChromaDB
-- 🔄 **Conversation context** — understands follow-up questions ("How many of *them*?")
-- 📊 **Results as tables** — interactive, sortable dataframes
-- 🛡️ **SQL safety validation** — blocks destructive operations automatically
-- 📈 **Session analytics** — tracks success rate, RAG usage, response times
+---
 
-## Tech Stack
+## ✨ What is QueryMate?
 
-| Layer | Technology |
+QueryMate bridges the gap between non-technical users and complex relational databases. Instead of writing SQL, you simply type a question like:
+
+> *"What are the top 5 product categories by revenue this year?"*
+
+And QueryMate will:
+1. 🧠 **Understand** your question using Google Gemini's LLM
+2. ✍️ **Generate** a safe, validated SQL query automatically
+3. ⚡ **Execute** it against your live PostgreSQL database
+4. 📊 **Visualise** the results as a smart bar chart, line chart, or table
+5. 💾 **Remember** the best queries to get smarter over time (RAG)
+
+---
+
+## 🚀 Key Features
+
+| Feature | Description |
 |---|---|
-| LLM | Google Gemini (`gemini-3.1-flash-lite-preview`) |
-| Orchestration | LangChain |
-| Vector Store | ChromaDB |
-| Database | PostgreSQL (via SQLAlchemy) |
-| Frontend | Streamlit |
+| 🗣️ **Natural Language to SQL** | Converts plain English questions into validated SQL queries |
+| 📊 **Auto Visualisation** | Automatically selects the best chart type (bar, line, metric, table) |
+| 🧠 **RAG Memory** | Stores successful queries in ChromaDB to improve future accuracy |
+| 💾 **Session Persistence** | Chat history is saved to PostgreSQL — survives page refreshes |
+| 🔒 **SQL Safety** | Validates every query before execution — blocks destructive operations |
+| 📥 **Export Results** | Download query results as CSV or Excel with one click |
 
-## Dataset
+---
 
-Olist Brazilian E-Commerce dataset — ~100K orders across 7 tables (customers, orders, products, order_items, payments, reviews, categories). Dates shifted to 2023–2025.
+## 🏗️ Architecture
 
-## Setup
+```
+User Question
+      │
+      ▼
+ Google Gemini LLM  ◄──── ChromaDB RAG (similar past queries)
+      │
+      ▼
+ SQL Validator (blocks DROP/DELETE/ALTER etc.)
+      │
+      ▼
+ PostgreSQL (Supabase) ──► Results ──► Auto Chart ──► UI
+      │
+      ▼
+ Session saved back to PostgreSQL (chat_sessions table)
+```
 
-### 1. PostgreSQL (Docker)
+---
 
+## 🛠️ Tech Stack
+
+- **Frontend**: [Streamlit](https://streamlit.io)
+- **LLM**: [Google Gemini 1.5 Flash](https://deepmind.google/technologies/gemini/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/) via [Supabase](https://supabase.com)
+- **Vector Store**: [ChromaDB](https://www.trychroma.com/) (local persistent)
+- **ORM**: [SQLAlchemy](https://www.sqlalchemy.org/)
+- **Charts**: [Plotly Express](https://plotly.com/python/plotly-express/)
+
+---
+
+## 🔧 Local Setup
+
+### Prerequisites
+- Python 3.10+
+- [Pipenv](https://pipenv.pypa.io/en/latest/)
+- A running PostgreSQL database
+- A [Google Gemini API Key](https://aistudio.google.com/app/apikey)
+
+### 1. Clone the repository
 ```bash
-docker volume create postgres-data
-docker run --name querymate-db \
-  -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_USER=user \
-  -e POSTGRES_DB=ecommerce \
-  -p 5432:5432 \
-  -v postgres-data:/var/lib/postgresql \
-  -d postgres
+git clone https://github.com/your-username/QueryMate.git
+cd QueryMate
 ```
 
-### 2. Environment Variables
-
-Create a `.env` file in the project root:
-
-```
-DB_NAME=ecommerce
-DB_USER=user
-DB_PASS=password
-DB_HOST=localhost
-DB_PORT=5432
-GEMINI_API_KEY=your_key_here
-```
-
-### 3. Install Dependencies
-
+### 2. Install dependencies
 ```bash
 pipenv install
-pipenv shell
 ```
 
-### 4. Load Data
+### 3. Configure environment variables
+Create a `.env` file in the root directory:
+```env
+DB_HOST=your-db-host
+DB_PORT=5432
+DB_USER=your-db-user
+DB_PASS=your-db-password
+DB_NAME=your-db-name
+GEMINI_API_KEY=your-gemini-api-key
+```
 
+### 4. Run the app
 ```bash
-python src/data_loader.py
+pipenv run streamlit run src/app.py
 ```
 
-### 5. Run the App
+---
 
-```bash
-streamlit run src/app.py
-```
+## ☁️ Cloud Deployment (Hugging Face Spaces)
 
-Open [http://localhost:8501](http://localhost:8501) in your browser.
+1. Create a new **Streamlit Space** on [Hugging Face](https://huggingface.co/spaces)
+2. Add your environment variables in **Settings → Repository Secrets**
+3. Push your code to the Space's Git repository
+4. Done! Your app is live 🚀
 
-## Example Questions
+> **Note:** The `data/chroma_db` folder acts as a read-only RAG brain in the cloud. To teach the AI new queries, train locally and push the updated folder to the repository.
 
-- *"How many customers are there?"*
-- *"Show top 5 product categories by number of orders"*
-- *"What was total revenue in 2024?"*
-- *"Show me customers from São Paulo"*
-- *"Which orders had 5-star reviews and spent over 500?"*
+---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 QueryMate/
 ├── src/
-│   ├── app.py           ← Streamlit frontend
-│   ├── llm_query.py     ← Core pipeline (SQL generation + execution)
-│   ├── prompts.py       ← LangChain prompt template + DB schema
-│   ├── vector_store.py  ← ChromaDB RAG store
-│   ├── utilities.py     ← SQL validation + cleanup
-│   ├── data_loader.py   ← CSV → PostgreSQL loader
-│   └── analyze_logs.py  ← Performance analytics
+│   ├── app.py              # Main Streamlit UI & session logic
+│   ├── llm_query.py        # Gemini API integration & SQL generation
+│   ├── vector_store.py     # ChromaDB RAG implementation
+│   ├── utilities.py        # DB connection, SQL validation, chart detection
+│   └── prompts.py          # LLM prompt templates
 ├── data/
-│   ├── raw_data_used/   ← CSV source files
-│   ├── chroma_db/       ← Persisted vector store
-│   └── logs/            ← Query logs + analysis
-├── .streamlit/
-│   └── config.toml      ← Dark theme config
+│   ├── chroma_db/          # Persistent vector store (RAG brain)
+│   └── database_schema.png # Schema reference for the LLM
 ├── requirements.txt
-├── Pipfile
-└── .env                 ← (not committed)
+└── README.md
 ```
+
+---
+
+## 🔐 Security
+
+- Only `SELECT` queries are permitted — all `DROP`, `DELETE`, `UPDATE`, `INSERT`, `ALTER` operations are blocked at the validation layer before reaching the database.
+- API keys and database credentials are managed exclusively through environment variables and never hardcoded.
+
+---
+
+## 👤 Author
+
+Built by **Kaung Si Thu** as a portfolio project demonstrating the integration of LLMs, RAG, and real-time database querying in a production-ready Streamlit application.
+
+[![GitHub](https://img.shields.io/badge/GitHub-KaungSiThu--Sallius-181717?logo=github)](https://github.com/KaungSiThu-Sallius)

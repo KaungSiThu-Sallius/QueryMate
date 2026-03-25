@@ -1,4 +1,4 @@
-1) Dokcer Create -> backend database server
+1Dokcer Create -> backend database server
                  -> to presistence volume create
                  -> Change date to current by adding 7 years
 
