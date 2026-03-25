@@ -1,1 +1,22 @@
-/.env
+# Environment — never commit secrets!
+.env
+
+# Large raw data files — data lives in Supabase
+data/raw_data/
+data/raw_data_extra/
+data/raw_data_used/
+my_data.sql
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# macOS
+.DS_Store
+
+# Logs
+data/logs/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
