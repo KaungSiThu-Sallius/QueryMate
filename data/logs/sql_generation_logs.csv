@@ -379,3 +379,58 @@ Break it down by state,2026-03-24 12:32:16,"SELECT customer_state, COUNT(custome
 FROM customers
 GROUP BY customer_state
 ORDER BY customer_count DESC;",1685.93,3,289.82,True,4,True,success,
+Top 5 product categories,2026-03-24 13:14:31,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",9482.73,3,419.31,True,1,False,success,
+how many customres,2026-03-24 16:21:57,SELECT COUNT(*) FROM customers;,3448.2,3,363.79,True,1,False,success,
+How many customers are there?,2026-03-24 16:26:22,SELECT COUNT(*) as customer_count FROM customers;,1330.35,3,326.14,True,1,False,success,
+sales over time by month,2026-03-24 16:31:40,"SELECT DATE_TRUNC('month', o.order_purchase_timestamp) AS month, 
+       ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_purchase_timestamp BETWEEN '2023-01-01' AND '2025-12-31'
+GROUP BY 1
+ORDER BY 1 ASC;",1820.4,3,311.13,True,1,False,success,
+what is perfect month in sales,2026-03-24 16:32:40,"SELECT DATE_TRUNC('month', o.order_purchase_timestamp) AS month, ROUND(SUM(oi.price + oi.freight_value)::numeric, 2) AS total_revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_purchase_timestamp BETWEEN '2023-01-01' AND '2025-12-31'
+GROUP BY 1
+ORDER BY total_revenue DESC
+LIMIT 1;",1299.71,3,237.19,True,1,False,success,
+How many customers,2026-03-24 16:24:27,,0,3,296.9,True,1,False,failed,[Errno 54] Connection reset by peer
+How many customers are there?,2026-03-24 16:25:01,,0,3,216.85,True,1,False,failed,[Errno 54] Connection reset by peer
+Top 5 product categories,2026-03-24 23:57:14,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",2065.35,3,515.61,True,1,False,success,
+Top 5 product categories,2026-03-25 09:50:33,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1504.83,3,352.09,True,1,False,success,
+Top 5 product categories,2026-03-25 09:52:35,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1233.59,3,256.82,True,1,False,success,
+Top 5 product categories,2026-03-25 09:53:48,"SELECT pct.product_category_name_english, COUNT(DISTINCT oi.order_id) as order_count
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+GROUP BY pct.product_category_name_english
+ORDER BY order_count DESC
+LIMIT 5;",1695.85,3,204.44,True,1,False,success,
+what can you do,2026-03-25 09:57:17,"SELECT 'I can help you query the e-commerce database. For example, I can find information about customers, orders, products, and their categories. I can also calculate metrics like total revenue or the number of orders for specific products or categories. Please ask me a specific question about the data.' AS capabilities;",1251.23,3,201.28,True,1,False,failed,Invalid SQL: missing FROM clause
+How many customers are there?,2026-03-25 10:38:51,SELECT COUNT(*) as customer_count FROM customers;,1239.59,3,322.8,True,1,False,success,

@@ -83,4 +83,8 @@ def check_duplication(sql, retrieved_examples):
             should_store = False
     return should_store
 
-
+def get_collection_count() -> int:
+    try:
+        return collection.count()
+    except Exception:
+        return 0

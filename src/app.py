@@ -1,32 +1,22 @@
-"""
-QueryMate — Streamlit Web Interface  (Day 9: Auto-Visualization & Polish)
-Natural language to SQL, powered by Gemini AI.
-
-Run from project root:
-    streamlit run src/app.py
-"""
-
 import sys
 import os
 import random
 import io
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
-
+from streamlit_local_storage import LocalStorage
 try:
     import plotly.express as px
     PLOTLY_OK = True
 except ImportError:
     PLOTLY_OK = False
 
-# ── Page Config ────────────────────────────────────────────────────────────
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 st.set_page_config(
     page_title="QueryMate · AI SQL Assistant",
     page_icon="🤖",
@@ -37,7 +27,7 @@ st.set_page_config(
 
 load_dotenv()
 
-# ── Custom CSS ─────────────────────────────────────────────────────────────
+# Custom CSS
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -47,52 +37,55 @@ footer { visibility: hidden; }
 
 .app-header {
     background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #9333ea 100%);
-    padding: 1.8rem 2.4rem; border-radius: 16px; margin-bottom: 1.4rem;
+    padding: 1rem 2.4rem 1.4rem; border-radius: 16px; margin-bottom: 1.4rem;
     box-shadow: 0 8px 32px rgba(99,102,241,0.35);
 }
 .app-header h1 { color:#fff; font-size:2rem; font-weight:700; margin:0; letter-spacing:-0.5px; }
-.app-header p  { color:rgba(255,255,255,0.82); margin:0.35rem 0 0; font-size:0.96rem; }
+.app-header p  { color:rgba(255,255,255,0.82); margin:0.35rem 0; font-size:0.96rem; }
 
-.welcome-box { text-align:center; padding:4rem 2rem; color:#6b7280; }
-.welcome-box h2 { font-size:1.6rem; margin-bottom:0.4rem; }
+.welcome-box { text-align:center; padding:3rem 2rem; color:#6b7280; }
+.welcome-box h2 { font-size:1.6rem; margin-bottom:0.1rem; }
 .welcome-box code { background:#1e2130; padding:2px 9px; border-radius:6px; color:#a5b4fc; font-size:0.86rem; }
 
 .hist-chip { padding:5px 9px; border-radius:8px; margin-bottom:3px; font-size:0.78rem; line-height:1.4; border-left:3px solid; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Backend Imports ────────────────────────────────────────────────────────
+# Backend Imports 
 try:
     from llm_query import (
         generate_sql, logging as log_query,
         add_to_conversation, clear_conversation as backend_clear,
     )
-    from vector_store import collection, store_successful_query, check_duplication
-    from utilities import validate_sql
+    from vector_store import collection, store_successful_query, check_duplication, get_collection_count
+    from utilities import validate_sql, get_engine, detect_chart_type
     BACKEND_READY = True
     BACKEND_ERROR = None
 except Exception as _exc:
     BACKEND_READY = False
     BACKEND_ERROR = str(_exc)
 
-# ── Session State ──────────────────────────────────────────────────────────
+# Session State
+localS = LocalStorage()
+
 def _init_state():
+    qm_messages = localS.getItem("qm_messages")
+    qm_conv_log = localS.getItem("qm_conv_log")
+
     defaults = {
-        "messages":       [],
-        "conv_log":       [],
-        "n_queries":      0,
-        "n_success":      0,
-        "n_failed":       0,
-        "n_rag":          0,
+        "messages": qm_messages if isinstance(qm_messages, list) else [],
+        "conv_log": qm_conv_log if isinstance(qm_conv_log, list) else [],
+        "n_queries": 0,
+        "n_success": 0,
+        "n_failed": 0,
+        "n_rag": 0,
         "total_examples": 0,
-        "times_ms":       [],
-        "started":        datetime.now().strftime("%H:%M"),
+        "times_ms": [],
+        "started": datetime.now().strftime("%H:%M"),
         # Settings
-        "show_charts":    True,
-        "store_memory":   True,
-        "row_limit":      100,
-        # Suggestion button pending fill
-        "pending_q":      None,
+        "show_charts": True,
+        "store_memory": True,
+        "row_limit": 10,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -100,28 +93,20 @@ def _init_state():
 
 _init_state()
 
-# ── Core Helpers ───────────────────────────────────────────────────────────
-def _get_engine():
-    return create_engine(
-        f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}"
-        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}",
-        connect_args={"options": "-c statement_timeout=5000"},
-    )
-
-def _chroma_count() -> int:
-    try:    return collection.count()
-    except Exception: return 0
-
+# Helper
 def _clear_all():
     for k in ("messages", "conv_log", "times_ms"):
         st.session_state[k] = []
     for k in ("n_queries", "n_success", "n_failed", "n_rag", "total_examples"):
         st.session_state[k] = 0
-    st.session_state.pending_q = None
+        
+    localS.deleteItem("qm_messages", key="del_msgs")
+    localS.deleteItem("qm_conv_log", key="del_log")
+    
     if BACKEND_READY:
         backend_clear()
 
-# ── Visualization ──────────────────────────────────────────────────────────
+# Visualization 
 _PLOTLY_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(15,17,23,0.6)",
@@ -132,46 +117,8 @@ _PLOTLY_LAYOUT = dict(
 )
 _ACCENT = "#6366f1"
 
-
-def detect_chart_type(df: pd.DataFrame, sql: str):
-    """Return (chart_type, config) for the given result set."""
-    if df is None or df.empty:
-        return "none", {}
-
-    rows  = len(df)
-    num   = df.select_dtypes(include="number").columns.tolist()
-    cat   = [c for c in df.columns if c not in num]
-    sql_u = (sql or "").upper()
-
-    # Single scalar value
-    if rows == 1 and len(df.columns) == 1:
-        return "metric", {}
-
-    # No numeric → table
-    if not num or rows > 100:
-        return "table", {}
-
-    # Time-series: date-like column + numeric
-    DATE_KW = ["date", "month", "year", "week", "day", "time", "period", "quarter"]
-    date_col = next((c for c in df.columns if any(k in c.lower() for k in DATE_KW)), None)
-    if date_col and num:
-        return "line", {"x": date_col, "y": num[0], "title": f"{num[0]} over time"}
-
-    # Two-column: category + value
-    if len(df.columns) == 2 and cat and num:
-        if "ORDER BY" in sql_u and "LIMIT" in sql_u and rows <= 20:
-            return "hbar", {"x": num[0], "y": cat[0], "title": f"Top {rows} by {num[0]}"}
-        if rows <= 30:
-            return "bar", {"x": cat[0], "y": num[0], "title": f"{num[0]} by {cat[0]}"}
-
-    return "table", {}
-
-
 def render_chart(df: pd.DataFrame, chart_type: str, config: dict):
     """Render Plotly chart; falls back gracefully if plotly not installed."""
-    if not PLOTLY_OK:
-        st.info("Install plotly for auto-charts: `pipenv install plotly`")
-        return
 
     if chart_type == "metric":
         val   = df.iloc[0, 0]
@@ -201,33 +148,12 @@ def render_chart(df: pd.DataFrame, chart_type: str, config: dict):
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ── Smart Suggestions ──────────────────────────────────────────────────────
-def get_suggestions(sql: str, df: pd.DataFrame) -> list:
-    s, sugg = (sql or "").upper(), []
-
-    if "COUNT(" in s:
-        sugg.append("Break it down by state")
-    if "GROUP BY" in s:
-        sugg.append("Sort by highest first")
-    if "LIMIT" in s and "ORDER BY" in s:
-        sugg.append("Show bottom 10 instead")
-    if "SUM(" in s or "REVENUE" in s:
-        sugg.append("Break down by month")
-        sugg.append("Which state has the highest?")
-    if "JOIN" in s and "REVIEW" in s:
-        sugg.append("Show only 5-star reviews")
-    if not sugg:
-        sugg = ["How many rows in total?", "Break it down by state", "Show top 10 only"]
-
-    return sugg[:3]
-
-
-# ── Process Pipeline ───────────────────────────────────────────────────────
-_LOADING_MSGS = [
+# Process Pipeline
+load_messages = [
     "🤖 Processing your question…",
     "🧠 Consulting the database oracle…",
-    "✨ Crunching the numbers…",
-    "🔮 Teaching the AI new tricks…",
+    "✨ Calculating the numbers…",
+    "🔮 AI Thinking…",
 ]
 
 
@@ -239,12 +165,12 @@ def _process(question: str) -> dict:
         "chart_type": "none", "chart_config": {},
     }
 
-    with st.status(random.choice(_LOADING_MSGS), expanded=True) as sw:
+    with st.status(random.choice(load_messages), expanded=True) as sw:
         # 1. Generate SQL
         st.write("🔍 Searching memory for similar examples…")
         sql, examples, log = generate_sql(question)
         result["retrieved_count"] = log.get("retrieved_count", 0)
-        result["rag_used"]        = log.get("rag_used", False)
+        result["rag_used"] = log.get("rag_used", False)
 
         st.write(
             f"✅ Found {result['retrieved_count']} example(s)"
@@ -253,7 +179,7 @@ def _process(question: str) -> dict:
 
         if sql is None:
             result["status"] = "failed"
-            result["error"]  = log.get("error", "LLM failed to generate SQL")
+            result["error"] = log.get("error", "LLM failed to generate SQL")
             sw.update(label="❌ SQL generation failed", state="error")
             return result
 
@@ -271,7 +197,7 @@ def _process(question: str) -> dict:
         # 3. Execute
         st.write("⚡ Running query against the database…")
         try:
-            engine = _get_engine()
+            engine = get_engine()
             with engine.connect() as conn:
                 t0 = time.time()
                 conn.execute(text("SET statement_timeout = '5s'"))
@@ -309,25 +235,23 @@ def _process(question: str) -> dict:
     return result
 
 
-# ── Render Assistant Bubble ────────────────────────────────────────────────
+# Render Assistant Bubble
 def _render_assistant_msg(msg: dict):
     if msg["status"] == "success":
         if msg.get("sql"):
             with st.expander("📝 View Generated SQL", expanded=False):
                 st.code(msg["sql"], language="sql")
 
-        df          = msg.get("df")
-        chart_type  = msg.get("chart_type", "none")
+        df = msg.get("df")
+        chart_type = msg.get("chart_type", "none")
         chart_config = msg.get("chart_config", {})
 
         if df is not None and not df.empty:
-            # Respect row limit setting
             df_disp = df.head(st.session_state.row_limit)
             st.success(f"✅ {msg['rows']} row(s) returned"
                        + (f"  *(showing first {st.session_state.row_limit})*"
                           if len(df) > st.session_state.row_limit else ""))
 
-            # Chart + Table tabs (or table only if charts off / not chartable)
             if st.session_state.show_charts and chart_type not in ("none", "table"):
                 tab_chart, tab_table = st.tabs(["📊 Chart", "📋 Table"])
                 with tab_chart:
@@ -337,49 +261,19 @@ def _render_assistant_msg(msg: dict):
             else:
                 st.dataframe(df_disp, use_container_width=True, hide_index=True)
 
-            # Export buttons
             ts = datetime.now().strftime("%Y%m%d_%H%M")
             key_base = str(msg.get("exec_ms", id(msg)))
-            e1, e2, _ = st.columns([1, 1, 3])
+            _, e1, _ = st.columns([3, 3, 3])
 
             e1.download_button(
                 "📥 CSV", df.to_csv(index=False),
                 file_name=f"querymate_{ts}.csv", mime="text/csv",
                 use_container_width=True, key=f"csv_{key_base}",
             )
-            try:
-                buf = io.BytesIO()
-                df.to_excel(buf, index=False, engine="openpyxl")
-                e2.download_button(
-                    "📊 Excel", buf.getvalue(),
-                    file_name=f"querymate_{ts}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True, key=f"xlsx_{key_base}",
-                )
-            except Exception:
-                pass
 
         elif df is not None:
             st.warning("⚠️ Query ran successfully but returned no results.")
 
-        # Meta caption
-        parts = []
-        if msg.get("exec_ms"):       parts.append(f"⚡ {msg['exec_ms']:.0f}ms")
-        if msg.get("rag_used"):      parts.append(f"📚 {msg['retrieved_count']} RAG")
-        if msg.get("stored"):        parts.append("💾 Stored")
-        if chart_type not in ("none","table","metric"): parts.append(f"📊 {chart_type} chart")
-        if parts: st.caption(" · ".join(parts))
-
-        # Smart suggestions
-        if df is not None and not df.empty and msg.get("sql"):
-            sugg = get_suggestions(msg["sql"], df)
-            if sugg:
-                st.markdown("<small>💡 **Try next:**</small>", unsafe_allow_html=True)
-                scols = st.columns(len(sugg))
-                for i, (col, s) in enumerate(zip(scols, sugg)):
-                    if col.button(s, key=f"sug_{key_base}_{i}", use_container_width=True):
-                        st.session_state.pending_q = s
-                        st.rerun()
     else:
         st.error(f"❌ {msg.get('error', 'Something went wrong.')}")
         if msg.get("sql"):
@@ -388,10 +282,10 @@ def _render_assistant_msg(msg: dict):
         st.info("💡 Try rephrasing or be more specific about the table/column you need.")
 
 
-# ── Sidebar ────────────────────────────────────────────────────────────────
+# Sidebar
 with st.sidebar:
     st.markdown("### 🤖 QueryMate")
-    st.caption("Natural Language → SQL · Gemini AI")
+    st.caption("Natural Language → SQL")
     st.divider()
 
     st.markdown("**⚙️ Controls**")
@@ -410,31 +304,22 @@ with st.sidebar:
     rag_r = f"{round(st.session_state.n_rag/n*100)}%" if n else "—"
 
     c1, c2 = st.columns(2)
-    c1.metric("Queries",   n);     c2.metric("Success",  rate)
-    c1.metric("RAG Usage", rag_r); c2.metric("Avg Time", avg_t)
-    st.metric("💾 Stored Queries", _chroma_count())
+    c1.metric("Queries", n);     
+    c2.metric("Success", rate)
+    c1.metric("RAG Usage", rag_r); 
+    c2.metric("Avg Time", avg_t)
     st.divider()
 
-    # Settings
-    with st.expander("🔧 Settings"):
-        st.session_state.show_charts  = st.checkbox("Auto-show charts",       value=st.session_state.show_charts)
-        st.session_state.store_memory = st.checkbox("Store queries to memory", value=st.session_state.store_memory)
-        st.session_state.row_limit    = st.select_slider(
-            "Max rows displayed", options=[10, 25, 50, 100, 200],
-            value=st.session_state.row_limit,
-        )
 
-    st.divider()
-
-    # History chips
+    # History
     entries = st.session_state.conv_log
     if entries:
         st.markdown(f"**💬 History ({len(entries)} turns)**")
         for i, e in enumerate(entries[-5:], 1):
-            ok_e  = e["status"] == "success"
+            ok_e = e["status"] == "success"
             color = "#10b981" if ok_e else "#ef4444"
-            bg    = "rgba(16,185,129,0.08)" if ok_e else "rgba(239,68,68,0.08)"
-            q_s   = e["question"][:34] + "…" if len(e["question"]) > 34 else e["question"]
+            bg = "rgba(16,185,129,0.08)" if ok_e else "rgba(239,68,68,0.08)"
+            q_s = e["question"][:34] + "…" if len(e["question"]) > 34 else e["question"]
             st.markdown(
                 f"<div class='hist-chip' style='border-color:{color};background:{bg};'>"
                 f"{'✅' if ok_e else '❌'} <b>Q{i}</b> {q_s}</div>",
@@ -447,36 +332,29 @@ with st.sidebar:
 
     with st.expander("❓ Help & Examples"):
         st.markdown("""
-**How to use:**
-- Type a question, press **Enter**
-- Click suggestion chips for follow-ups
-- Type `clear` to reset
+            **How to use:**
+            - Type a question, press **Enter**
+            - Click suggestion chips for follow-ups
+            - Type `clear` to reset
 
-**Try these:**
-- `How many customers are there?`
-- `Top 5 product categories by orders`
-- `Total revenue in 2024`
-- `Orders per month in 2024`
-- `Customers from São Paulo`
-- `Orders with 5-star reviews`
+            **Try these:**
+            - `How many customers are there?`
+            - `Top 5 product categories by orders`
+            - `Total revenue in 2024`
+            - `Orders per month in 2024`
+            - `Customers from São Paulo`
+            - `Orders with 5-star reviews`
         """)
 
-    with st.expander("🗄️ About the Data"):
-        st.markdown("""
-**Source:** Olist Brazilian E-Commerce  
-**Period:** 2023 – 2025  
-**Tables:** customers · orders · products · order_items · payments · reviews · categories  
-**~100K orders**
-        """)
 
     st.caption(f"Session started {st.session_state.started}")
 
 
-# ── Main Area ──────────────────────────────────────────────────────────────
+# Main Area
 st.markdown("""
 <div class="app-header">
   <h1>🤖 QueryMate</h1>
-  <p>Ask your e-commerce database anything in plain English — powered by Gemini AI</p>
+  <p>Ask e-commerce database anything in plain English — powered by Gemini AI</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -485,29 +363,21 @@ if not BACKEND_READY:
     st.info("Run from project root: `streamlit run src/app.py`")
     st.stop()
 
-# Top metrics row
-if st.session_state.n_queries > 0:
-    n = st.session_state.n_queries
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("🔢 Total Queries",  n)
-    m2.metric("✅ Success Rate",   f"{round(st.session_state.n_success/n*100)}%")
-    m3.metric("📚 RAG Usage",      f"{round(st.session_state.n_rag/n*100)}%")
-    m4.metric("🔍 Avg Examples",   round(st.session_state.total_examples/n, 1))
-    st.divider()
+
 
 # Chat display
 if not st.session_state.messages:
     st.markdown("""
-<div class="welcome-box">
-  <h2>👋 Welcome to QueryMate!</h2>
-  <p>Ask any question about the e-commerce database below.</p><br>
-  <p>
-    Try: <code>How many customers are there?</code> &nbsp;·&nbsp;
-    <code>Top 5 product categories</code> &nbsp;·&nbsp;
-    <code>Revenue by state</code>
-  </p>
-</div>
-""", unsafe_allow_html=True)
+        <div class="welcome-box">
+            <h2>Welcome to QueryMate!</h2>
+            <p>Ask any question about the e-commerce database below.</p><br>
+            <p>
+                Try: <code>How many customers are there?</code> &nbsp;·&nbsp;
+                <code>Top 5 product categories</code> &nbsp;·&nbsp;
+                <code>Revenue by state</code>
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
 else:
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"], avatar="👤" if msg["role"] == "user" else "🤖"):
@@ -517,37 +387,42 @@ else:
                 _render_assistant_msg(msg)
 
 
-# ── Input + Pending Suggestion ─────────────────────────────────────────────
-pending = st.session_state.pending_q
+# Input
 if user_input := st.chat_input("Ask anything about your data…"):
     question = user_input.strip()
-elif pending:
-    question = pending
-    st.session_state.pending_q = None
 else:
     question = None
 
 if question:
     if question.lower() in {"clear", "reset", "new", "start over"}:
-        _clear_all(); st.rerun()
+        _clear_all(); 
+        st.rerun()
     else:
         st.session_state.messages.append({"role": "user", "content": question})
         res = _process(question)
 
         st.session_state.n_queries += 1
-        if res["status"] == "success": st.session_state.n_success += 1
-        else:                          st.session_state.n_failed  += 1
-        if res["rag_used"]:            st.session_state.n_rag     += 1
+        if res["status"] == "success": 
+            st.session_state.n_success += 1
+        else:                          
+            st.session_state.n_failed  += 1
+        if res["rag_used"]:            
+            st.session_state.n_rag     += 1
         st.session_state.total_examples += res.get("retrieved_count", 0)
-        if res.get("exec_ms"):         st.session_state.times_ms.append(res["exec_ms"])
+        if res.get("exec_ms"):         
+            st.session_state.times_ms.append(res["exec_ms"])
 
         st.session_state.conv_log.append({
             "question": question,
-            "sql":      res.get("sql"),
-            "status":   res.get("status"),
-            "rows":     res.get("rows", 0),
-            "ms":       res.get("exec_ms", 0),
-            "ts":       datetime.now().strftime("%H:%M"),
+            "sql": res.get("sql"),
+            "status": res.get("status"),
+            "rows": res.get("rows", 0),
+            "ms": res.get("exec_ms", 0),
+            "ts": datetime.now().strftime("%H:%M"),
         })
         st.session_state.messages.append({"role": "assistant", **res})
+        
+        localS.setItem("qm_messages", st.session_state.messages, key="set_messages")
+        localS.setItem("qm_conv_log", st.session_state.conv_log, key="set_conv")
+        
         st.rerun()

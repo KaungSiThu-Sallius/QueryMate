@@ -142,7 +142,7 @@ def generate_sql(user_question):
         start_time = time.time()
 
         llm = ChatGoogleGenerativeAI(
-            model="gemini-3.1-flash-lite-preview",
+            model="gemini-2.5-flash-lite",
             temperature=0,
             max_tokens=2000,
             timeout=None,

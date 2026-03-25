@@ -14,8 +14,9 @@ langchain = "*"
 chromadb = "*"
 streamlit = "*"
 python-dotenv = "*"
-openpyxl = "*"
 plotly = "*"
+openpyxl = "*"
+streamlit-local-storage = "*"
 
 [dev-packages]
 ipykernel = "*"

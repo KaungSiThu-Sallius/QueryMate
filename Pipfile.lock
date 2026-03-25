@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "40c2ff3f9a60349e204ce2aa378d896f9f958cdc75b3f9c076cf2d2c41f049af"
+            "sha256": "f97a473befb1c83bd4c038cfdc8405d3b2080c32e10bd18814a47ec0dafbf196"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1155,11 +1155,11 @@
         },
         "narwhals": {
             "hashes": [
-                "sha256:1de5cee338bc17c338c6278df2c38c0dd4290499fcf70d75e0a51d5f22a6e960",
-                "sha256:68378155ee706ac9c5b25868ef62ecddd62947b6df7801a0a156bc0a615d2d0d"
+                "sha256:652a1fcc9d432bbf114846688884c215f17eb118aa640b7419295d2f910d2a8b",
+                "sha256:a0a8bb80205323851338888ba3a12b4f65d352362c8a94be591244faf36504ad"
             ],
             "markers": "python_version >= '3.9'",
-            "version": "==2.18.0"
+            "version": "==2.18.1"
         },
         "numpy": {
             "hashes": [
@@ -2600,6 +2600,15 @@
             "index": "pypi",
             "markers": "python_version >= '3.10'",
             "version": "==1.55.0"
+        },
+        "streamlit-local-storage": {
+            "hashes": [
+                "sha256:0ef85618ed8c44f347b7acffb2d104da5b6915e6a4e24612f12a4d2cc355b951",
+                "sha256:9b7c3e8ae7c14a68b47c980b167306181292213736dfa71850c8d3204dc2a9cd"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.7'",
+            "version": "==0.0.25"
         },
         "sympy": {
             "hashes": [
