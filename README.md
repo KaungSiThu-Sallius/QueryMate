@@ -7,6 +7,8 @@
 [![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Vector DB](https://img.shields.io/badge/Vector%20DB-ChromaDB-orange)](https://www.trychroma.com/)
 
+**Live Demo:** [Go To Live Demo](https://querymate-ttog.onrender.com)
+
 ---
 
 ## ✨ What is QueryMate?
