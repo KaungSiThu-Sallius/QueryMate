@@ -31,36 +31,21 @@ And QueryMate will:
 | 🗣️ **Natural Language to SQL** | Converts plain English questions into validated SQL queries |
 | 📊 **Auto Visualisation** | Automatically selects the best chart type (bar, line, metric, table) |
 | 🧠 **RAG Memory** | Stores successful queries in ChromaDB to improve future accuracy |
-| 💾 **Session Persistence** | Chat history is saved to PostgreSQL — survives page refreshes |
-| 🔒 **SQL Safety** | Validates every query before execution — blocks destructive operations |
+| 💾 **Session Persistence** | Chat history is saved to PostgreSQL, survives page refreshes |
+| 🔒 **SQL Safety** | Validates every query before execution, blocks destructive operations |
 | 📥 **Export Results** | Download query results as CSV or Excel with one click |
 
 ---
 
 ## 🏗️ Architecture
-
-```
-User Question
-      │
-      ▼
- Google Gemini LLM  ◄──── ChromaDB RAG (similar past queries)
-      │
-      ▼
- SQL Validator (blocks DROP/DELETE/ALTER etc.)
-      │
-      ▼
- PostgreSQL (Supabase) ──► Results ──► Auto Chart ──► UI
-      │
-      ▼
- Session saved back to PostgreSQL (chat_sessions table)
-```
+![System Architecture](data/system_architecture.png)
 
 ---
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: [Streamlit](https://streamlit.io)
-- **LLM**: [Google Gemini 1.5 Flash](https://deepmind.google/technologies/gemini/)
+- **LLM**: [Google Gemini](https://deepmind.google/technologies/gemini/)
 - **Database**: [PostgreSQL](https://www.postgresql.org/) via [Supabase](https://supabase.com)
 - **Vector Store**: [ChromaDB](https://www.trychroma.com/) (local persistent)
 - **ORM**: [SQLAlchemy](https://www.sqlalchemy.org/)
@@ -95,24 +80,13 @@ DB_PORT=5432
 DB_USER=your-db-user
 DB_PASS=your-db-password
 DB_NAME=your-db-name
-GEMINI_API_KEY=your-gemini-api-key
+GOOGLE_API_KEY=your-gemini-api-key
 ```
 
 ### 4. Run the app
 ```bash
 pipenv run streamlit run src/app.py
 ```
-
----
-
-## ☁️ Cloud Deployment (Hugging Face Spaces)
-
-1. Create a new **Streamlit Space** on [Hugging Face](https://huggingface.co/spaces)
-2. Add your environment variables in **Settings → Repository Secrets**
-3. Push your code to the Space's Git repository
-4. Done! Your app is live 🚀
-
-> **Note:** The `data/chroma_db` folder acts as a read-only RAG brain in the cloud. To teach the AI new queries, train locally and push the updated folder to the repository.
 
 ---
 
@@ -125,10 +99,14 @@ QueryMate/
 │   ├── llm_query.py        # Gemini API integration & SQL generation
 │   ├── vector_store.py     # ChromaDB RAG implementation
 │   ├── utilities.py        # DB connection, SQL validation, chart detection
+│   ├── data_loader.py      # Data ingestion helpers
+│   ├── analyze_logs.py     # Query log analysis
 │   └── prompts.py          # LLM prompt templates
 ├── data/
-│   ├── chroma_db/          # Persistent vector store (RAG brain)
-│   └── database_schema.png # Schema reference for the LLM
+│   └── chroma_db/          # Persistent vector store (RAG brain)
+├── .streamlit/
+│   └── config.toml         # Streamlit theme & server config
+├── Dockerfile
 ├── requirements.txt
 └── README.md
 ```
