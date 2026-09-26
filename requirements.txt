@@ -1,4 +1,4 @@
-psycopg2-binary
+psycopg-binary
 sqlalchemy
 pandas
 google-generativeai
@@ -10,4 +10,3 @@ streamlit
 python-dotenv
 plotly
 openpyxl
-psycopg
